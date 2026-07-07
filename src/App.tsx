@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom'
+import { HashRouter, NavLink, Route, Routes } from 'react-router-dom'
 import { DataProvider } from './context/DataContext'
 import { Ranking } from './pages/Ranking'
 import { History } from './pages/History'
@@ -89,7 +89,7 @@ function NavBar() {
 function App() {
   return (
     <DataProvider>
-      <BrowserRouter>
+      <HashRouter>
         <div className="min-h-screen bg-slate-50">
           <NavBar />
           <main>
@@ -103,7 +103,7 @@ function App() {
             </Routes>
           </main>
         </div>
-      </BrowserRouter>
+      </HashRouter>
     </DataProvider>
   )
 }
