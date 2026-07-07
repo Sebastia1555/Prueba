@@ -25,7 +25,10 @@ function NavBar() {
     }`
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <header
+      className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="text-xl">🎾</span>

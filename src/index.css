@@ -6,9 +6,26 @@ body,
   height: 100%;
 }
 
+html {
+  /* Evita el zoom por doble-tap y hace los toques más ágiles en móvil. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
+  /* Evita el desplazamiento horizontal accidental en pantallas estrechas. */
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
   @apply bg-slate-50 text-slate-900;
+}
+
+/* Feedback táctil inmediato en controles interactivos. */
+button,
+select,
+a,
+[role="button"] {
+  touch-action: manipulation;
 }
 
 ::-webkit-scrollbar {
@@ -17,4 +34,28 @@ body {
 }
 ::-webkit-scrollbar-thumb {
   @apply bg-slate-300 rounded-full;
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-in {
+  animation: modal-in 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in {
+    animation: none;
+  }
+  * {
+    scroll-behavior: auto !important;
+  }
 }

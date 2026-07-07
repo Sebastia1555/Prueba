@@ -49,7 +49,10 @@ export function deriveMatch(match: Pick<Match, 'sets'>): MatchDerived {
     if (gamesA > gamesB) setsWonA++
     else if (gamesB > gamesA) setsWonB++
   }
-  const winner: 'A' | 'B' = setsWonA >= setsWonB ? 'A' : 'B'
+  // Ganador por sets; si hay empate a sets, decide quién hizo más juegos.
+  let winner: 'A' | 'B'
+  if (setsWonA !== setsWonB) winner = setsWonA > setsWonB ? 'A' : 'B'
+  else winner = totalGamesA >= totalGamesB ? 'A' : 'B'
   return {
     setsWonA,
     setsWonB,
