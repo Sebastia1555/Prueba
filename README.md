@@ -1,21 +1,31 @@
-# Pádel Tracker
+# Sebastián Caldentey · Web corporativa
 
-Aplicación web para llevar el seguimiento de partidos de pádel de un grupo abierto de amigos: registra el
-histórico de partidos, calcula automáticamente el ELO de cada jugador y predice bajo demanda la probabilidad
-de victoria de dos parejas antes de un partido.
+Propuesta de sitio web corporativo para **Sebastián Caldentey**, taller de piedra de Santanyí
+(Mallorca) especializado en la extracción, fabricación y distribución de piedra natural para
+constructoras, promotoras, arquitectos y estudios de diseño.
 
-## Funcionalidades
+> Proyecto de demostración. Los textos están elaborados a partir de información pública sobre la
+> empresa y su actividad; los datos de contacto son orientativos.
 
-- **Ranking**: todos los jugadores ordenados por ELO, con nivel (1-7), % de victorias y forma reciente.
-- **Historial de partidos**: filtrable por jugador, con edición y eliminación (recalculando el ELO de todos
-  los jugadores desde cero cada vez).
-- **Registrar partido**: formulario con alta rápida de jugadores nuevos sin perder lo ya rellenado.
-- **Predicción**: probabilidad de victoria de dos parejas, con ajuste por enfrentamientos directos y datos de
-  sinergia entre compañeros.
-- **Perfil de jugador**: evolución del ELO a lo largo del tiempo, mejor y peor compañero de pareja.
+## Secciones
 
-Los datos se guardan en `localStorage`, por lo que persisten entre sesiones en el mismo navegador. Desde
-Ajustes se pueden cargar datos de ejemplo o borrar todo para empezar con el grupo real.
+- **Inicio (hero)**: propuesta de valor y cifras clave (años de oficio, generaciones, cantera propia).
+- **Empresa**: historia y tradición artesana de la piedra de Santanyí.
+- **Productos**: recercados y jambas, arcadas, columnas, balaustradas, revestimientos y encimeras.
+- **Servicios**: soluciones para profesionales (suministro a obra, fabricación a medida,
+  rehabilitación y patrimonio, asesoramiento técnico).
+- **Proceso**: de la cantera propia a la puesta en obra.
+- **Por qué elegirnos**: cantera propia, tradición, tecnología y piezas a medida.
+- **Proyectos**: galería de tipologías de obra.
+- **Contacto**: formulario de solicitud de presupuesto y datos de la empresa.
+
+## Tecnología
+
+- [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- [Vite](https://vite.dev/) como bundler
+- [Tailwind CSS v4](https://tailwindcss.com/) para el diseño
+- Web de una sola página con navegación por anclas, responsive y con textura de piedra generada
+  íntegramente con CSS (sin imágenes externas más allá de las tipografías).
 
 ## Desarrollo
 
@@ -23,5 +33,9 @@ Ajustes se pueden cargar datos de ejemplo o borrar todo para empezar con el grup
 npm install
 npm run dev      # servidor de desarrollo
 npm run build    # build de producción (incluye chequeo de tipos)
-npm run lint      # oxlint
+npm run preview  # sirve el build de producción
+npm run lint     # oxlint
 ```
+
+El contenido editable (productos, servicios, proceso, ventajas, proyectos y datos de contacto)
+está centralizado en [`src/content.ts`](src/content.ts).

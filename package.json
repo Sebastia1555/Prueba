@@ -1,5 +1,5 @@
 {
-  "name": "prueba",
+  "name": "sebastian-caldentey-web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,10 +11,7 @@
   },
   "dependencies": {
     "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.1",
-    "recharts": "^3.9.2",
-    "uuid": "^14.0.1"
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",
