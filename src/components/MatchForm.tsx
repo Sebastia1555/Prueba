@@ -112,25 +112,25 @@ export function MatchForm({ initial, onSubmit, onCancel, submitLabel = 'Guardar 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Fecha</label>
+        <label className="ap-label">Fecha</label>
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 sm:w-56"
+          className="ap-input sm:w-56"
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
-          <h3 className="mb-3 text-sm font-semibold text-emerald-800">Equipo A</h3>
+        <div className="rounded-[18px] border p-4" style={{ borderColor: 'var(--ap-hairline)', backgroundColor: 'var(--ap-parchment)' }}>
+          <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--ap-blue)' }}>Equipo A</h3>
           <div className="space-y-3">
             <PlayerSelect label="Jugador 1" players={players} value={teamA1} onChange={setTeamA1} excludeIds={selectedIds} />
             <PlayerSelect label="Jugador 2" players={players} value={teamA2} onChange={setTeamA2} excludeIds={selectedIds} />
           </div>
         </div>
-        <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-4">
-          <h3 className="mb-3 text-sm font-semibold text-sky-800">Equipo B</h3>
+        <div className="rounded-[18px] border p-4" style={{ borderColor: 'var(--ap-hairline)', backgroundColor: 'var(--ap-parchment)' }}>
+          <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--ap-ink-2)' }}>Equipo B</h3>
           <div className="space-y-3">
             <PlayerSelect label="Jugador 1" players={players} value={teamB1} onChange={setTeamB1} excludeIds={selectedIds} />
             <PlayerSelect label="Jugador 2" players={players} value={teamB2} onChange={setTeamB2} excludeIds={selectedIds} />
@@ -140,19 +140,15 @@ export function MatchForm({ initial, onSubmit, onCancel, submitLabel = 'Guardar 
 
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <label className="text-sm font-medium text-slate-700">Resultado por sets</label>
-          <button
-            type="button"
-            onClick={addSetRow}
-            className="text-sm font-medium text-emerald-700 hover:text-emerald-800"
-          >
+          <label className="text-[14px] font-semibold" style={{ color: 'var(--ap-ink-2)' }}>Resultado por sets</label>
+          <button type="button" onClick={addSetRow} className="ap-link text-[15px] bg-transparent">
             + Añadir set
           </button>
         </div>
         <div className="space-y-2">
           {setRows.map((row, index) => (
             <div key={index} className="flex items-center gap-2">
-              <span className="w-14 shrink-0 text-xs font-medium text-slate-500">Set {index + 1}</span>
+              <span className="w-14 shrink-0 text-[13px] font-medium" style={{ color: 'var(--ap-ink-3)' }}>Set {index + 1}</span>
               <input
                 type="number"
                 min={0}
@@ -160,9 +156,10 @@ export function MatchForm({ initial, onSubmit, onCancel, submitLabel = 'Guardar 
                 placeholder="A"
                 value={row.a}
                 onChange={(e) => updateSetRow(index, 'a', e.target.value)}
-                className="w-16 rounded-lg border border-slate-300 px-2 py-2 text-center text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="ap-input w-16 text-center"
+                style={{ padding: '9px 8px' }}
               />
-              <span className="text-slate-400">-</span>
+              <span style={{ color: 'var(--ap-ink-3)' }}>-</span>
               <input
                 type="number"
                 min={0}
@@ -170,14 +167,15 @@ export function MatchForm({ initial, onSubmit, onCancel, submitLabel = 'Guardar 
                 placeholder="B"
                 value={row.b}
                 onChange={(e) => updateSetRow(index, 'b', e.target.value)}
-                className="w-16 rounded-lg border border-slate-300 px-2 py-2 text-center text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="ap-input w-16 text-center"
+                style={{ padding: '9px 8px' }}
               />
               {setRows.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeSetRow(index)}
                   aria-label={`Eliminar set ${index + 1}`}
-                  className="ml-1 rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-rose-600 transition-colors"
+                  className="ml-1 rounded-full p-1.5 text-[color:var(--ap-ink-3)] hover:bg-black/5 transition-colors"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -191,25 +189,18 @@ export function MatchForm({ initial, onSubmit, onCancel, submitLabel = 'Guardar 
       </div>
 
       {error && (
-        <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">
+        <p role="alert" className="rounded-[12px] px-3.5 py-2.5 text-[14px]" style={{ backgroundColor: 'var(--loss-bg)', color: 'var(--loss)' }}>
           {error}
         </p>
       )}
 
       <div className="flex justify-end gap-2 pt-2">
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
-          >
+          <button type="button" onClick={onCancel} className="ap-btn ap-btn-neutral">
             Cancelar
           </button>
         )}
-        <button
-          type="submit"
-          className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors"
-        >
+        <button type="submit" className="ap-btn ap-btn-primary">
           {submitLabel}
         </button>
       </div>

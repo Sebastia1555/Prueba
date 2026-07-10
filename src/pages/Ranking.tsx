@@ -15,9 +15,9 @@ export function Ranking() {
 
   if (players.length === 0) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <h1 className="text-xl font-semibold text-slate-800">Todavía no hay jugadores</h1>
-        <p className="mt-2 text-sm text-slate-500">
+      <div className="mx-auto max-w-2xl px-4 py-20 text-center">
+        <h1 className="text-[28px] font-semibold" style={{ color: 'var(--ap-ink)' }}>Todavía no hay jugadores</h1>
+        <p className="mt-3 text-[17px]" style={{ color: 'var(--ap-ink-2)' }}>
           Registra un partido para empezar a construir el ranking, o carga los datos de ejemplo desde Ajustes.
         </p>
       </div>
@@ -25,16 +25,16 @@ export function Ranking() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
-      <h1 className="mb-4 text-2xl font-bold text-slate-900">Ranking</h1>
+    <div className="mx-auto max-w-5xl px-4 py-8">
+      <h1 className="mb-6 text-[34px] font-semibold tracking-[-0.03em]" style={{ color: 'var(--ap-ink)' }}>Ranking</h1>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[720px] text-left text-sm">
+      <div className="ap-card overflow-x-auto">
+        <table className="w-full min-w-[720px] text-left text-[15px]">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-              <th className="px-4 py-3 font-semibold">#</th>
-              <th className="px-4 py-3 font-semibold">Jugador</th>
-              <th className="px-4 py-3 font-semibold">
+            <tr className="border-b text-[12px] uppercase tracking-[0.04em]" style={{ borderColor: 'var(--ap-hairline-soft)', color: 'var(--ap-ink-3)' }}>
+              <th className="px-4 py-3.5 font-semibold">#</th>
+              <th className="px-4 py-3.5 font-semibold">Jugador</th>
+              <th className="px-4 py-3.5 font-semibold">
                 <span className="inline-flex items-center">
                   ELO
                   <InfoPopover
@@ -43,7 +43,7 @@ export function Ranking() {
                   />
                 </span>
               </th>
-              <th className="px-4 py-3 font-semibold">
+              <th className="px-4 py-3.5 font-semibold">
                 <span className="inline-flex items-center">
                   Nivel
                   <InfoPopover
@@ -52,8 +52,8 @@ export function Ranking() {
                   />
                 </span>
               </th>
-              <th className="px-4 py-3 font-semibold">Partidos</th>
-              <th className="px-4 py-3 font-semibold">
+              <th className="px-4 py-3.5 font-semibold">Partidos</th>
+              <th className="px-4 py-3.5 font-semibold">
                 <span className="inline-flex items-center">
                   % Victorias
                   <InfoPopover
@@ -62,7 +62,7 @@ export function Ranking() {
                   />
                 </span>
               </th>
-              <th className="px-4 py-3 font-semibold">
+              <th className="px-4 py-3.5 font-semibold">
                 <span className="inline-flex items-center">
                   Forma
                   <InfoPopover
@@ -80,12 +80,13 @@ export function Ranking() {
                 <tr
                   key={player.id}
                   onClick={() => navigate(`/jugador/${player.id}`)}
-                  className="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors"
+                  className="cursor-pointer border-b last:border-0 transition-colors hover:bg-black/[0.02]"
+                  style={{ borderColor: 'var(--ap-hairline-soft)' }}
                 >
-                  <td className="px-4 py-3 font-semibold text-slate-500">{index + 1}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5 font-semibold tabular-nums" style={{ color: 'var(--ap-ink-3)' }}>{index + 1}</td>
+                  <td className="px-4 py-3.5">
                     <span className="inline-flex items-center">
-                      <Link to={`/jugador/${player.id}`} className="font-medium text-slate-900 hover:text-emerald-700">
+                      <Link to={`/jugador/${player.id}`} className="font-medium hover:opacity-70" style={{ color: 'var(--ap-ink)' }}>
                         {player.name}
                       </Link>
                       <RenamePlayerButton playerId={player.id} currentName={player.name} />
@@ -96,15 +97,15 @@ export function Ranking() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-mono text-slate-700">{Math.round(player.elo)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5 tabular-nums font-semibold" style={{ color: 'var(--ap-ink)' }}>{Math.round(player.elo)}</td>
+                  <td className="px-4 py-3.5">
                     <LevelBadge level={eloToLevel(player.elo)} />
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{player.matchesPlayed}</td>
-                  <td className="px-4 py-3 text-slate-600">
+                  <td className="px-4 py-3.5 tabular-nums" style={{ color: 'var(--ap-ink-2)' }}>{player.matchesPlayed}</td>
+                  <td className="px-4 py-3.5 tabular-nums" style={{ color: 'var(--ap-ink-2)' }}>
                     {formatPercent(winRate(player.wins, player.matchesPlayed))}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <FormBadges form={recentForm(player.id, matches)} />
                   </td>
                 </tr>

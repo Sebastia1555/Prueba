@@ -1,5 +1,45 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------ */
+/*  Apple-inspired design system (SF Pro, Action Blue, parchment)     */
+/* ------------------------------------------------------------------ */
+:root {
+  --ap-blue: #0066cc;
+  --ap-blue-hover: #0a6fd6;
+  --ap-blue-focus: #0071e3;
+
+  --ap-ink: #1d1d1f;
+  --ap-ink-2: #515154;
+  --ap-ink-3: #86868b;
+
+  --ap-parchment: #f5f5f7;
+  --ap-white: #ffffff;
+  --ap-pearl: #fafafc;
+  --ap-hairline: #d2d2d7;
+  --ap-hairline-soft: #e8e8ed;
+  --ap-dark: #1d1d1f;
+
+  /* Semantic data colours (win / loss / warning / destructive) */
+  --win: #1a8a48;
+  --win-bg: #eaf7ef;
+  --win-border: #b7e2c6;
+  --loss: #c4362f;
+  --loss-bg: #fbeceb;
+  --loss-border: #f2c9c6;
+  --warn: #8a5a00;
+  --warn-bg: #fdf3e0;
+  --warn-border: #f2dcae;
+  --danger: #d70015;
+  --danger-hover: #b8000f;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-pill: 9999px;
+
+  --shadow-product: 0 5px 30px rgba(0, 0, 0, 0.18);
+}
+
 html,
 body,
 #root {
@@ -7,20 +47,32 @@ body,
 }
 
 html {
-  /* Evita el zoom por doble-tap y hace los toques más ágiles en móvil. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
-  /* Evita el desplazamiento horizontal accidental en pantallas estrechas. */
   overflow-x: hidden;
+  background: var(--ap-parchment);
+  color: var(--ap-ink);
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
-  @apply bg-slate-50 text-slate-900;
 }
 
-/* Feedback táctil inmediato en controles interactivos. */
+h1,
+h2,
+h3 {
+  color: var(--ap-ink);
+  font-weight: 600;
+  letter-spacing: -0.022em;
+}
+
 button,
 select,
 a,
@@ -28,34 +80,140 @@ a,
   touch-action: manipulation;
 }
 
+/* --- Buttons -------------------------------------------------------- */
+.ap-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  padding: 10px 22px;
+  cursor: pointer;
+  transition: transform 0.14s ease, background-color 0.14s ease, opacity 0.14s ease, border-color 0.14s ease;
+}
+.ap-btn:active {
+  transform: scale(0.96);
+}
+.ap-btn:focus-visible {
+  outline: 2px solid var(--ap-blue-focus);
+  outline-offset: 2px;
+}
+.ap-btn-sm {
+  font-size: 14px;
+  padding: 7px 15px;
+}
+.ap-btn-primary {
+  background: var(--ap-blue);
+  color: #fff;
+}
+.ap-btn-primary:hover {
+  background: var(--ap-blue-hover);
+}
+.ap-btn-ghost {
+  background: transparent;
+  color: var(--ap-blue);
+  border-color: var(--ap-blue);
+}
+.ap-btn-neutral {
+  background: var(--ap-pearl);
+  color: var(--ap-ink);
+  border-color: var(--ap-hairline);
+}
+.ap-btn-neutral:hover {
+  background: #f0f0f3;
+}
+.ap-btn-quiet {
+  background: transparent;
+  color: var(--ap-ink-2);
+}
+.ap-btn-quiet:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.ap-btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+.ap-btn-danger:hover {
+  background: var(--danger-hover);
+}
+.ap-btn-danger-quiet {
+  background: transparent;
+  color: var(--danger);
+}
+.ap-btn-danger-quiet:hover {
+  background: var(--loss-bg);
+}
+.ap-link {
+  color: var(--ap-blue);
+  cursor: pointer;
+}
+
+/* --- Surfaces ------------------------------------------------------- */
+.ap-card {
+  background: var(--ap-white);
+  border: 1px solid var(--ap-hairline-soft);
+  border-radius: var(--r-lg);
+}
+
+/* --- Inputs --------------------------------------------------------- */
+.ap-input {
+  width: 100%;
+  background: var(--ap-white);
+  color: var(--ap-ink);
+  border: 1px solid var(--ap-hairline);
+  border-radius: var(--r-md);
+  padding: 11px 14px;
+  font-size: 17px;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+}
+.ap-input:focus {
+  outline: none;
+  border-color: var(--ap-blue);
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
+}
+.ap-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ap-ink-2);
+}
+
+/* --- Scrollbar ------------------------------------------------------ */
 ::-webkit-scrollbar {
   height: 8px;
   width: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 rounded-full;
+  background: var(--ap-hairline);
+  border-radius: 9999px;
 }
 
+/* --- Modal animation ------------------------------------------------ */
 @keyframes modal-in {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.98);
+    transform: translateY(12px) scale(0.985);
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
-
 .animate-in {
-  animation: modal-in 0.18s ease-out;
+  animation: modal-in 0.2s ease-out;
 }
-
 @media (prefers-reduced-motion: reduce) {
   .animate-in {
     animation: none;
   }
-  * {
-    scroll-behavior: auto !important;
+  .ap-btn:active {
+    transform: none;
   }
 }

@@ -35,14 +35,16 @@ export function InfoPopover({ label, text }: InfoPopoverProps) {
           e.stopPropagation()
           setOpen((v) => !v)
         }}
-        className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold leading-none text-slate-600 hover:bg-slate-300 transition-colors"
+        className="ml-1.5 inline-flex h-[18px] w-[18px] items-center justify-center rounded-full text-[11px] font-semibold leading-none transition-colors"
+        style={{ backgroundColor: 'var(--ap-hairline-soft)', color: 'var(--ap-ink-2)' }}
       >
         ?
       </button>
       {open && (
         <span
           role="tooltip"
-          className="absolute left-1/2 top-6 z-30 w-52 -translate-x-1/2 rounded-lg bg-slate-800 px-3 py-2 text-left text-xs font-normal leading-snug text-white shadow-lg"
+          className="absolute left-1/2 top-7 z-30 w-52 -translate-x-1/2 rounded-[12px] px-3.5 py-2.5 text-left text-[13px] font-normal leading-snug text-white"
+          style={{ backgroundColor: 'var(--ap-ink)', boxShadow: 'var(--shadow-product)', letterSpacing: '-0.01em' }}
         >
           {text}
         </span>

@@ -51,12 +51,8 @@ export function PlayerSelect({ label, players, value, onChange, excludeIds = [] 
 
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
-      <select
-        value={value}
-        onChange={handleSelect}
-        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-      >
+      <label className="ap-label">{label}</label>
+      <select value={value} onChange={handleSelect} className="ap-input">
         <option value="" disabled>
           Selecciona un jugador…
         </option>
@@ -80,7 +76,7 @@ export function PlayerSelect({ label, players, value, onChange, excludeIds = [] 
         maxWidth="max-w-sm"
       >
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Nombre</label>
+          <label className="ap-label">Nombre</label>
           <input
             autoFocus
             type="text"
@@ -96,10 +92,10 @@ export function PlayerSelect({ label, players, value, onChange, excludeIds = [] 
               }
             }}
             placeholder="Ej. Sara"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            className="ap-input"
           />
-          {error && <p className="mt-1.5 text-xs text-rose-600">{error}</p>}
-          <div className="mt-4 flex justify-end gap-2">
+          {error && <p className="mt-2 text-[13px]" style={{ color: 'var(--loss)' }}>{error}</p>}
+          <div className="mt-5 flex justify-end gap-2">
             <button
               type="button"
               onClick={() => {
@@ -107,15 +103,11 @@ export function PlayerSelect({ label, players, value, onChange, excludeIds = [] 
                 setError('')
                 setNewName('')
               }}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+              className="ap-btn ap-btn-sm ap-btn-neutral"
             >
               Cancelar
             </button>
-            <button
-              type="button"
-              onClick={handleCreate}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
-            >
+            <button type="button" onClick={handleCreate} className="ap-btn ap-btn-sm ap-btn-primary">
               Crear y seleccionar
             </button>
           </div>

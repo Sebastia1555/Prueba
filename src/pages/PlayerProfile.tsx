@@ -16,12 +16,13 @@ export function PlayerProfile() {
 
   if (!player) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <h1 className="text-xl font-semibold text-slate-800">Jugador no encontrado</h1>
+      <div className="mx-auto max-w-2xl px-4 py-20 text-center">
+        <h1 className="text-[28px] font-semibold" style={{ color: 'var(--ap-ink)' }}>Jugador no encontrado</h1>
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="mt-4 text-sm font-medium text-emerald-700 hover:text-emerald-800"
+          className="mt-4 text-[15px] font-medium hover:opacity-70"
+          style={{ color: 'var(--ap-blue)' }}
         >
           ← Volver al ranking
         </button>
@@ -45,21 +46,21 @@ export function PlayerProfile() {
   const { best, worst } = bestAndWorstPartner(player.id, matches)
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <Link to="/" className="text-sm font-medium text-slate-500 hover:text-slate-700">
+    <div className="mx-auto max-w-3xl px-4 py-8">
+      <Link to="/" className="text-[14px] font-medium hover:opacity-70" style={{ color: 'var(--ap-blue)' }}>
         ← Ranking
       </Link>
 
-      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-bold text-slate-900">{player.name}</h1>
+      <div className="ap-card mt-4 p-6">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h1 className="text-[34px] font-semibold tracking-[-0.03em]" style={{ color: 'var(--ap-ink)' }}>{player.name}</h1>
           <RenamePlayerButton playerId={player.id} currentName={player.name} />
           <LevelBadge level={eloToLevel(player.elo)} />
           {provisional && <ProvisionalBadge />}
         </div>
-        <p className="mt-1 text-sm text-slate-500">ELO actual: {Math.round(player.elo)}</p>
+        <p className="mt-1.5 text-[15px]" style={{ color: 'var(--ap-ink-3)' }}>ELO actual: {Math.round(player.elo)}</p>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Partidos" value={player.matchesPlayed} />
           <Stat label="Victorias" value={player.wins} />
           <Stat label="Derrotas" value={player.losses} />
@@ -67,23 +68,24 @@ export function PlayerProfile() {
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+      <div className="ap-card mt-4 p-6">
+        <h2 className="mb-4 text-[12px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--ap-ink-3)' }}>
           Evolución del ELO
         </h2>
         {player.eloHistory.length === 0 ? (
-          <p className="text-sm text-slate-500">Este jugador todavía no tiene partidos registrados.</p>
+          <p className="text-[15px]" style={{ color: 'var(--ap-ink-3)' }}>Este jugador todavía no tiene partidos registrados.</p>
         ) : (
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis domain={['dataMin - 20', 'dataMax + 20']} tick={{ fontSize: 11 }} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#86868b' }} stroke="#d2d2d7" />
+                <YAxis domain={['dataMin - 20', 'dataMax + 20']} tick={{ fontSize: 11, fill: '#86868b' }} stroke="#d2d2d7" />
                 <Tooltip
                   formatter={(value) => [Math.round(Number(value)), 'ELO']}
                   labelFormatter={(_, payload) => payload?.[0]?.payload?.date || 'Inicio'}
+                  contentStyle={{ borderRadius: 12, border: '1px solid #e8e8ed', fontSize: 13 }}
                 />
-                <Line type="monotone" dataKey="elo" stroke="#059669" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="elo" stroke="#0066cc" strokeWidth={2.5} dot={{ r: 3, fill: '#0066cc' }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -91,32 +93,32 @@ export function PlayerProfile() {
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <div className="ap-card p-6">
+          <h2 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--ap-ink-3)' }}>
             Mejor compañero
           </h2>
           {best ? (
-            <p className="text-sm text-slate-700">
-              <span className="font-semibold">{name(best.partnerId)}</span> — {formatPercent(best.winRate)} de
+            <p className="text-[15px]" style={{ color: 'var(--ap-ink-2)' }}>
+              <span className="font-semibold" style={{ color: 'var(--ap-ink)' }}>{name(best.partnerId)}</span> — {formatPercent(best.winRate)} de
               victorias en {best.matchesTogether} partidos juntos
             </p>
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-[15px]" style={{ color: 'var(--ap-ink-3)' }}>
               Aún no hay un compañero con el que haya jugado al menos 2 partidos.
             </p>
           )}
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <div className="ap-card p-6">
+          <h2 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--ap-ink-3)' }}>
             Peor compañero
           </h2>
           {worst ? (
-            <p className="text-sm text-slate-700">
-              <span className="font-semibold">{name(worst.partnerId)}</span> — {formatPercent(worst.winRate)} de
+            <p className="text-[15px]" style={{ color: 'var(--ap-ink-2)' }}>
+              <span className="font-semibold" style={{ color: 'var(--ap-ink)' }}>{name(worst.partnerId)}</span> — {formatPercent(worst.winRate)} de
               victorias en {worst.matchesTogether} partidos juntos
             </p>
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-[15px]" style={{ color: 'var(--ap-ink-3)' }}>
               Aún no hay un compañero con el que haya jugado al menos 2 partidos.
             </p>
           )}
@@ -128,9 +130,9 @@ export function PlayerProfile() {
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-lg bg-slate-50 px-3 py-3 text-center">
-      <p className="text-lg font-bold text-slate-900">{value}</p>
-      <p className="text-xs text-slate-500">{label}</p>
+    <div className="rounded-[14px] px-3 py-4 text-center" style={{ backgroundColor: 'var(--ap-parchment)' }}>
+      <p className="text-[22px] font-semibold tabular-nums" style={{ color: 'var(--ap-ink)' }}>{value}</p>
+      <p className="mt-0.5 text-[12px]" style={{ color: 'var(--ap-ink-3)' }}>{label}</p>
     </div>
   )
 }

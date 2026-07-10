@@ -15,11 +15,11 @@ export function NewMatch() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
-      <h1 className="mb-4 text-2xl font-bold text-slate-900">Registrar nuevo partido</h1>
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+    <div className="mx-auto max-w-2xl px-4 py-8">
+      <h1 className="mb-6 text-[34px] font-semibold tracking-[-0.03em]" style={{ color: 'var(--ap-ink)' }}>Registrar nuevo partido</h1>
+      <div className="ap-card p-5 sm:p-7">
         {justSaved && (
-          <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+          <p className="mb-5 rounded-[12px] px-3.5 py-2.5 text-[15px] font-medium" style={{ backgroundColor: 'var(--win-bg)', color: 'var(--win)' }}>
             Partido guardado. Redirigiendo al historial…
           </p>
         )}
