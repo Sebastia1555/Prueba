@@ -1,4 +1,4 @@
-# Pádel Tracker
+# Pádel
 
 Aplicación web para llevar el seguimiento de partidos de pádel de un grupo abierto de amigos: registra el
 histórico de partidos, calcula automáticamente el ELO de cada jugador y predice bajo demanda la probabilidad

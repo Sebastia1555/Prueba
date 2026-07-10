@@ -1,6 +1,6 @@
 {
-  "name": "Pádel Tracker",
-  "short_name": "Pádel Tracker",
+  "name": "Pádel",
+  "short_name": "Pádel",
   "description": "Ranking ELO, historial y predicciones para partidos de pádel",
   "start_url": ".",
   "scope": ".",

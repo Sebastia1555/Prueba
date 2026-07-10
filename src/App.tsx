@@ -44,7 +44,7 @@ function NavBar() {
         <div className="flex items-center gap-2">
           <span className="text-xl">🎾</span>
           <span className="text-[19px] font-semibold tracking-[-0.02em] text-[color:var(--ap-ink)]">
-            Pádel Tracker
+            Pádel
           </span>
         </div>
 
