@@ -1,12 +1,12 @@
 {
-  "name": "Pádel",
-  "short_name": "Pádel",
-  "description": "Ranking ELO, historial y predicciones para partidos de pádel",
+  "name": "Bolsa · Cotizaciones",
+  "short_name": "Bolsa",
+  "description": "Cotizaciones de acciones en tiempo real con búsqueda, watchlist y gráficos",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#059669",
+  "background_color": "#f5f5f7",
+  "theme_color": "#0066cc",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

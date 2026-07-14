@@ -217,3 +217,17 @@ a,
     transform: none;
   }
 }
+
+/* --- Live pulse (indicador de conexión) ----------------------------- */
+@keyframes ping {
+  75%,
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="animation: ping"] {
+    animation: none !important;
+  }
+}

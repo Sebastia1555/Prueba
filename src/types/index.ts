@@ -1,40 +1,34 @@
-export interface EloHistoryEntry {
-  matchId: string
-  date: string // ISO date string of the match
-  elo: number
+// Núcleo de datos de la app de cotizaciones en tiempo real.
+
+/** Cotización actual de un valor. */
+export interface Quote {
+  symbol: string
+  price: number
+  /** Variación absoluta respecto al cierre anterior. */
+  change: number
+  /** Variación porcentual respecto al cierre anterior. */
+  changePct: number
+  open: number
+  high: number
+  low: number
+  prevClose: number
+  /** Marca de tiempo (ms) de la última actualización. */
+  updatedAt: number
 }
 
-export interface Player {
-  id: string
-  name: string
-  elo: number
-  matchesPlayed: number
-  wins: number
-  losses: number
-  eloHistory: EloHistoryEntry[]
+/** Resultado de búsqueda de símbolos. */
+export interface SymbolInfo {
+  symbol: string
+  /** Nombre de la empresa / descripción. */
+  description: string
+  type?: string
 }
 
-export type SetScore = [number, number]
-
-export interface Match {
-  id: string
-  date: string // ISO date string (yyyy-mm-dd)
-  createdAt: number // insertion order tiebreaker
-  teamA: [string, string] // player ids
-  teamB: [string, string]
-  sets: SetScore[]
+/** Punto de la serie temporal usada para los gráficos. */
+export interface Point {
+  t: number // timestamp (ms)
+  price: number
 }
 
-export interface MatchDerived {
-  setsWonA: number
-  setsWonB: number
-  winner: 'A' | 'B'
-  totalGamesA: number
-  totalGamesB: number
-  gameDiff: number // totalGamesA - totalGamesB
-}
-
-export interface AppData {
-  players: Player[]
-  matches: Match[]
-}
+/** Estado de la conexión de datos en vivo. */
+export type ConnectionState = 'connecting' | 'live' | 'demo' | 'offline'

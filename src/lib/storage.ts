@@ -1,30 +1,44 @@
-import type { AppData } from '../types'
+// Persistencia sencilla en localStorage para la watchlist y la clave de API.
 
-const STORAGE_KEY = 'padel-tracker-data-v1'
+const WATCHLIST_KEY = 'bolsa-watchlist-v1'
+const APIKEY_KEY = 'bolsa-finnhub-key-v1'
 
-export function loadData(): AppData | null {
+/** Watchlist por defecto: valores conocidos para que la app no arranque vacía. */
+export const DEFAULT_WATCHLIST = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'GOOGL']
+
+export function loadWatchlist(): string[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as AppData
-    if (!parsed.players || !parsed.matches) return null
-    return parsed
+    const raw = localStorage.getItem(WATCHLIST_KEY)
+    if (!raw) return [...DEFAULT_WATCHLIST]
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return [...DEFAULT_WATCHLIST]
+    const symbols = parsed.filter((s): s is string => typeof s === 'string')
+    return symbols
   } catch {
-    return null
+    return [...DEFAULT_WATCHLIST]
   }
 }
 
-export function saveData(data: AppData): void {
+export function saveWatchlist(symbols: string[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(symbols))
   } catch {
     // almacenamiento no disponible (modo privado, cuota excedida, etc.)
   }
 }
 
-export function clearData(): void {
+export function loadApiKey(): string {
   try {
-    localStorage.removeItem(STORAGE_KEY)
+    return localStorage.getItem(APIKEY_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function saveApiKey(key: string): void {
+  try {
+    if (key) localStorage.setItem(APIKEY_KEY, key)
+    else localStorage.removeItem(APIKEY_KEY)
   } catch {
     // ignore
   }

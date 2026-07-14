@@ -1,29 +1,23 @@
 import { useState } from 'react'
 import { HashRouter, NavLink, Route, Routes } from 'react-router-dom'
-import { DataProvider } from './context/DataContext'
-import { Ranking } from './pages/Ranking'
-import { History } from './pages/History'
-import { NewMatch } from './pages/NewMatch'
-import { Prediction } from './pages/Prediction'
-import { PlayerProfile } from './pages/PlayerProfile'
+import { MarketProvider, useMarket } from './context/MarketContext'
+import { ConnectionDot } from './components/ConnectionDot'
+import { Market } from './pages/Market'
+import { StockDetail } from './pages/StockDetail'
 import { Settings } from './pages/Settings'
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Ranking' },
-  { to: '/historial', label: 'Historial' },
-  { to: '/nuevo-partido', label: 'Nuevo partido' },
-  { to: '/prediccion', label: 'Predicción' },
+  { to: '/', label: 'Mercado' },
   { to: '/ajustes', label: 'Ajustes' },
 ]
 
 function NavBar() {
   const [open, setOpen] = useState(false)
+  const { connection } = useMarket()
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `rounded-full px-3.5 py-1.5 text-[14px] tracking-[-0.01em] transition-colors ${
-      isActive
-        ? 'text-white'
-        : 'text-[color:var(--ap-ink-2)] hover:text-[color:var(--ap-ink)]'
+      isActive ? 'text-white' : 'text-[color:var(--ap-ink-2)] hover:text-[color:var(--ap-ink)]'
     }`
 
   const linkStyle = ({ isActive }: { isActive: boolean }) =>
@@ -42,21 +36,18 @@ function NavBar() {
     >
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-xl">🎾</span>
+          <span className="text-xl">📈</span>
           <span className="text-[19px] font-semibold tracking-[-0.02em] text-[color:var(--ap-ink)]">
-            Pádel
+            Bolsa
+          </span>
+          <span className="ml-1 hidden sm:inline">
+            <ConnectionDot state={connection} />
           </span>
         </div>
 
         <nav className="hidden gap-1 sm:flex">
           {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={linkClass}
-              style={linkStyle}
-            >
+            <NavLink key={item.to} to={item.to} end={item.to === '/'} className={linkClass} style={linkStyle}>
               {item.label}
             </NavLink>
           ))}
@@ -103,6 +94,9 @@ function NavBar() {
               {item.label}
             </NavLink>
           ))}
+          <div className="px-3.5 py-2">
+            <ConnectionDot state={connection} />
+          </div>
         </nav>
       )}
     </header>
@@ -111,23 +105,20 @@ function NavBar() {
 
 function App() {
   return (
-    <DataProvider>
+    <MarketProvider>
       <HashRouter>
         <div className="min-h-screen">
           <NavBar />
           <main>
             <Routes>
-              <Route path="/" element={<Ranking />} />
-              <Route path="/historial" element={<History />} />
-              <Route path="/nuevo-partido" element={<NewMatch />} />
-              <Route path="/prediccion" element={<Prediction />} />
+              <Route path="/" element={<Market />} />
+              <Route path="/accion/:symbol" element={<StockDetail />} />
               <Route path="/ajustes" element={<Settings />} />
-              <Route path="/jugador/:id" element={<PlayerProfile />} />
             </Routes>
           </main>
         </div>
       </HashRouter>
-    </DataProvider>
+    </MarketProvider>
   )
 }
 
