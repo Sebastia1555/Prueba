@@ -218,16 +218,17 @@ a,
   }
 }
 
-/* --- Live pulse (indicador de conexión) ----------------------------- */
-@keyframes ping {
-  75%,
+/* --- Barra de carga indeterminada ----------------------------------- */
+@keyframes slide {
+  0% {
+    transform: translateX(-120%);
+  }
   100% {
-    transform: scale(2.2);
-    opacity: 0;
+    transform: translateX(320%);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  [style*="animation: ping"] {
+  [style*="animation: slide"] {
     animation: none !important;
   }
 }

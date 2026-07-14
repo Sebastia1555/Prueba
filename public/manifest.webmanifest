@@ -1,7 +1,7 @@
 {
-  "name": "Bolsa · Cotizaciones",
-  "short_name": "Bolsa",
-  "description": "Cotizaciones de acciones en tiempo real con búsqueda, watchlist y gráficos",
+  "name": "Buffett Daily",
+  "short_name": "Buffett",
+  "description": "Recomendador diario de compra value sobre el S&P 500, con disciplina de margen de seguridad",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

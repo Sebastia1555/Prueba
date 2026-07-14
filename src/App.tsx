@@ -1,28 +1,17 @@
-import { useState } from 'react'
-import { HashRouter, NavLink, Route, Routes } from 'react-router-dom'
-import { MarketProvider, useMarket } from './context/MarketContext'
-import { ConnectionDot } from './components/ConnectionDot'
-import { Market } from './pages/Market'
-import { StockDetail } from './pages/StockDetail'
-import { Settings } from './pages/Settings'
+import { HashRouter, Route, Routes } from 'react-router-dom'
+import { AppProvider } from './context/AppContext'
+import { Home } from './pages/Home'
 
-const NAV_ITEMS = [
-  { to: '/', label: 'Mercado' },
-  { to: '/ajustes', label: 'Ajustes' },
+// Secciones del producto completo. En la Fase 1 solo la Home está activa;
+// el resto se habilita en fases posteriores (registro, cartera, track record…).
+const SECTIONS = [
+  { label: 'Hoy', active: true },
+  { label: 'Cartera', active: false },
+  { label: 'Track record', active: false },
+  { label: 'Watchlist', active: false },
 ]
 
-function NavBar() {
-  const [open, setOpen] = useState(false)
-  const { connection } = useMarket()
-
-  const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `rounded-full px-3.5 py-1.5 text-[14px] tracking-[-0.01em] transition-colors ${
-      isActive ? 'text-white' : 'text-[color:var(--ap-ink-2)] hover:text-[color:var(--ap-ink)]'
-    }`
-
-  const linkStyle = ({ isActive }: { isActive: boolean }) =>
-    isActive ? { backgroundColor: 'var(--ap-blue)' } : undefined
-
+function Header() {
   return (
     <header
       className="sticky top-0 z-40 border-b"
@@ -34,91 +23,49 @@ function NavBar() {
         WebkitBackdropFilter: 'saturate(180%) blur(20px)',
       }}
     >
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+      <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-xl">📈</span>
+          <span className="text-xl">🧭</span>
           <span className="text-[19px] font-semibold tracking-[-0.02em] text-[color:var(--ap-ink)]">
-            Bolsa
-          </span>
-          <span className="ml-1 hidden sm:inline">
-            <ConnectionDot state={connection} />
+            Buffett Daily
           </span>
         </div>
 
         <nav className="hidden gap-1 sm:flex">
-          {NAV_ITEMS.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.to === '/'} className={linkClass} style={linkStyle}>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="Abrir menú"
-          aria-expanded={open}
-          className="rounded-full p-2 text-[color:var(--ap-ink-2)] hover:bg-black/5 sm:hidden"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            {open ? (
-              <>
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </>
-            ) : (
-              <>
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </>
-            )}
-          </svg>
-        </button>
-      </div>
-
-      {open && (
-        <nav
-          className="flex flex-col gap-1 border-t px-4 py-2 sm:hidden"
-          style={{ borderColor: 'var(--ap-hairline-soft)' }}
-        >
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={linkClass}
-              style={linkStyle}
-              onClick={() => setOpen(false)}
+          {SECTIONS.map((s) => (
+            <span
+              key={s.label}
+              className="rounded-full px-3.5 py-1.5 text-[14px] tracking-[-0.01em]"
+              style={
+                s.active
+                  ? { backgroundColor: 'var(--ap-blue)', color: '#fff' }
+                  : { color: 'var(--ap-ink-3)' }
+              }
+              title={s.active ? undefined : 'Disponible en próximas fases'}
             >
-              {item.label}
-            </NavLink>
+              {s.label}
+            </span>
           ))}
-          <div className="px-3.5 py-2">
-            <ConnectionDot state={connection} />
-          </div>
         </nav>
-      )}
+      </div>
     </header>
   )
 }
 
 function App() {
   return (
-    <MarketProvider>
+    <AppProvider>
       <HashRouter>
         <div className="min-h-screen">
-          <NavBar />
+          <Header />
           <main>
             <Routes>
-              <Route path="/" element={<Market />} />
-              <Route path="/accion/:symbol" element={<StockDetail />} />
-              <Route path="/ajustes" element={<Settings />} />
+              <Route path="/" element={<Home />} />
             </Routes>
           </main>
         </div>
       </HashRouter>
-    </MarketProvider>
+    </AppProvider>
   )
 }
 

@@ -1,34 +1,128 @@
-// Núcleo de datos de la app de cotizaciones en tiempo real.
+// Modelo de datos de "Buffett Daily".
+// Recomendador diario de compra value sobre el S&P 500.
 
-/** Cotización actual de un valor. */
+// --- Datos de mercado (interfaz que la app CONSUME, no implementa) --------
+
+/** Cotización en tiempo real de un valor. */
 export interface Quote {
-  symbol: string
+  ticker: string
   price: number
-  /** Variación absoluta respecto al cierre anterior. */
   change: number
-  /** Variación porcentual respecto al cierre anterior. */
   changePct: number
-  open: number
-  high: number
-  low: number
-  prevClose: number
-  /** Marca de tiempo (ms) de la última actualización. */
+  high52: number
+  low52: number
+  volume: number
   updatedAt: number
 }
 
-/** Resultado de búsqueda de símbolos. */
-export interface SymbolInfo {
-  symbol: string
-  /** Nombre de la empresa / descripción. */
-  description: string
-  type?: string
+/** Fundamentales de un ejercicio (un año fiscal). */
+export interface YearFundamentals {
+  year: number
+  revenue: number
+  netIncome: number
+  eps: number
+  fcf: number
+  roe: number // %
+  roic: number // %
+  totalDebt: number
+  equity: number
+  ebit: number
+  ebitda: number
+  grossMargin: number // %
+  operatingMargin: number // %
+  bookValuePerShare: number
+  sharesOutstanding: number
+  interestExpense: number
+  currentAssets: number
+  currentLiabilities: number
 }
 
-/** Punto de la serie temporal usada para los gráficos. */
-export interface Point {
+/** 10 años de fundamentales de un valor (ordenados de más antiguo a más reciente). */
+export interface Fundamentals {
+  ticker: string
+  name: string
+  sector: string
+  years: YearFundamentals[]
+}
+
+/** Punto de la serie histórica de cotización. */
+export interface PricePoint {
   t: number // timestamp (ms)
-  price: number
+  close: number
 }
 
-/** Estado de la conexión de datos en vivo. */
-export type ConnectionState = 'connecting' | 'live' | 'demo' | 'offline'
+// --- Salida del motor de scoring -----------------------------------------
+
+export type Conviction = 'Alta' | 'Media' | 'Baja'
+
+export interface QualityDetail {
+  score: number // 0-100
+  passesHardFilters: boolean
+  failedFilters: string[]
+  avgRoe10y: number
+  avgRoic10y: number
+  debtToEbitda: number
+  debtToEquity: number
+  fcfPositiveYears: number
+  epsCagr: number // %
+  epsStableOrGrowing: boolean
+  avgOperatingMargin: number
+  fcfConversion: number // FCF / beneficio neto
+  currentRatio: number
+  interestCoverage: number
+}
+
+export interface ValuationDetail {
+  score: number // 0-100
+  intrinsicValue: number // DCF de owner earnings, por acción
+  grahamNumber: number
+  marginOfSafety: number // fracción (0.25 = 25% por debajo del valor intrínseco)
+  peCurrent: number
+  peHistoricalAvg: number
+  pFcf: number
+  earningsYield: number // EBIT/EV, fracción
+  bondYield: number // referencia bono 10y, fracción
+}
+
+export interface TimingDetail {
+  score: number // 0-100
+  drawdownFrom52wHigh: number // fracción positiva = cuánto por debajo del máximo
+  pctVs200dma: number // fracción; negativo = cotiza por debajo de la media
+  rsi: number
+  valueTrap: boolean // ¿la caída es de negocio y no solo de precio?
+}
+
+export interface ScoreBreakdown {
+  quality: number
+  valuation: number
+  timing: number
+  total: number
+}
+
+/** Análisis completo de un valor. */
+export interface Analysis {
+  ticker: string
+  name: string
+  sector: string
+  price: number
+  changePct: number
+  quality: QualityDetail
+  valuation: ValuationDetail
+  timing: TimingDetail
+  scores: ScoreBreakdown
+  eligible: boolean // pasa calidad Y margen de seguridad mínimo
+  conviction: Conviction
+  thesis: string
+}
+
+/** Resultado diario del recomendador. */
+export interface DailyRecommendation {
+  date: string // yyyy-mm-dd
+  analyzed: number
+  qualityPassed: number
+  eligibleCount: number
+  hasOpportunity: boolean
+  main: Analysis | null
+  alternatives: Analysis[]
+  watchlist: Analysis[] // calidad alta pero aún sin margen de seguridad
+}

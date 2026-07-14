@@ -1,30 +1,40 @@
-# Bolsa · Cotizaciones en tiempo real
+# Buffett Daily
 
-Aplicación web para seguir cotizaciones de acciones en **tiempo real**. Busca valores, arma tu watchlist y
-consulta el detalle con gráfico en vivo. Los datos llegan por WebSocket desde la API gratuita de
-[Finnhub](https://finnhub.io); si no configuras una clave, la app arranca en **modo demo** con datos
-simulados realistas para que sea usable al instante.
+Recomendador diario de compra *value* sobre el S&P 500, con filosofía Warren Buffett / Benjamin Graham:
+negocios excelentes a precio razonable y con **margen de seguridad**. La app dice cada día qué comprar y por
+qué —o dice explícitamente que **hoy no hay compra**, porque la disciplina es no comprar calidad cara ni
+basura barata.
 
-## Funcionalidades
+> **Estado: Fase 1 (MVP).** Interfaz de datos mockeada + motor de scoring (3 capas) + Home con la
+> recomendación diaria y el mensaje de "no comprar hoy". Las siguientes fases añaden registro de operaciones,
+> cartera, track record y ficha de detalle.
 
-- **Mercado**: watchlist de valores con precio, variación diaria ($/%) y mini-gráfico, actualizándose en vivo.
-- **Búsqueda**: encuentra acciones por ticker o nombre y añádelas a tu lista con un clic.
-- **Detalle**: precio grande, gráfico de la sesión que se construye en vivo con los ticks recibidos, y datos
-  del día (apertura, máximo, mínimo, cierre anterior).
-- **Tiempo real**: WebSocket de Finnhub para ticks al instante + refresco REST periódico como respaldo.
-- **Modo demo**: sin clave de API, la app simula un mercado realista para poder probarla de inmediato.
+## El cerebro: motor de scoring value
 
-La watchlist y la clave de API se guardan en `localStorage`, por lo que persisten entre sesiones en el mismo
-navegador. La clave nunca sale de tu dispositivo.
+Un valor solo es **comprable** si pasa el filtro de calidad **y** tiene margen de seguridad suficiente
+(≥ 25%). El código vive aislado y testeable en `src/engine/`.
 
-## Datos en tiempo real (Finnhub)
+1. **Calidad del negocio** (`valuationEngine.ts` → `assessQuality`) — filtros duros + score 0-100:
+   ROE 10a > 12%, Deuda/EBITDA < 3 (o Deuda/Patrimonio < 1), FCF positivo ≥ 8 de 10 años, BPA estable/creciente,
+   márgenes operativos positivos. Score ponderado: ROIC 30% · consistencia y crecimiento del BPA 20% ·
+   salud del balance 20% · márgenes 15% · conversión de FCF 15%.
+2. **Valoración y margen de seguridad** (`assessValuation`) — DCF a dos etapas sobre *owner earnings*
+   (crecimiento conservador, descuento ~9,5%), número de Graham como cross-check, P/E vs media histórica,
+   *earnings yield* (EBIT/EV) frente al bono a 10 años.
+3. **Timing de la caída** (`assessTiming`) — caída desde máximos de 52s, precio vs media de 200 sesiones, RSI,
+   y penalización de *value trap* si la caída coincide con deterioro del negocio.
 
-1. Regístrate gratis en [finnhub.io/register](https://finnhub.io/register).
-2. Copia tu **API key** del panel.
-3. Pégala en **Ajustes → Datos en tiempo real** y pulsa «Conectar».
+**Ranking final** (`WEIGHTS`): Calidad 45% + Valoración 40% + Timing 15% (*value-first*: el timing solo
+prioriza entre buenos candidatos). La Home muestra 1 recomendación principal + hasta 3 alternativas, cada una
+con convicción, tesis, precio, valor intrínseco, margen de seguridad y caída desde máximos; más una
+*watchlist* de negocios excelentes que aún no están baratos.
 
-El plan gratuito cubre acciones y ETFs de EE. UU. (AAPL, TSLA, SPY…). Los ticks llegan durante el horario de
-mercado; fuera de sesión se muestra la última cotización disponible.
+## Interfaz de datos
+
+La app **consume** una interfaz de datos (`src/data/provider.ts`), no implementa la ingesta externa:
+`getQuote`, `getFundamentals`, `getPriceHistory`, `getSP500Constituents`, `getBenchmark`. En la Fase 1 está
+respaldada por datos mock deterministas (`src/data/mockData.ts`); cada función puede cablearse a una API real
+(Finnhub u otra) en fases posteriores sin tocar la UI ni el motor.
 
 ## Desarrollo
 
@@ -37,4 +47,10 @@ npm run lint     # oxlint
 
 ## Stack
 
-React 19 · TypeScript · Vite · Tailwind CSS · Recharts · React Router. PWA instalable.
+React 19 · TypeScript · Vite · Tailwind CSS · React Router. Diseño con lenguaje visual Apple (acento azul
+único, tipografía apretada, cromo mínimo). PWA instalable. Idioma: español.
+
+## Aviso legal
+
+Buffett Daily es una herramienta de análisis y registro personal; **no constituye asesoramiento financiero**.
+Las decisiones de inversión y sus riesgos son responsabilidad exclusiva del usuario.

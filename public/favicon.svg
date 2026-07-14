@@ -6,15 +6,13 @@
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <g fill="#ffffff" opacity="0.92">
-    <rect x="150" y="300" width="34" height="80" rx="8"/>
-    <rect x="222" y="332" width="34" height="48" rx="8"/>
-    <rect x="294" y="286" width="34" height="94" rx="8"/>
-  </g>
-  <polyline points="88,336 184,240 256,296 424,136"
-    fill="none" stroke="#ffffff" stroke-width="30"
-    stroke-linecap="round" stroke-linejoin="round"/>
-  <polyline points="352,136 424,136 424,208"
+  <!-- Escudo: margen de seguridad -->
+  <path d="M256 96 L392 146 V262 C392 348 332 400 256 430 C180 400 120 348 120 262 V146 Z"
+    fill="#ffffff" opacity="0.16"/>
+  <path d="M256 96 L392 146 V262 C392 348 332 400 256 430 C180 400 120 348 120 262 V146 Z"
+    fill="none" stroke="#ffffff" stroke-width="18" stroke-linejoin="round"/>
+  <!-- Tick alcista de valor -->
+  <polyline points="176,268 232,318 344,196"
     fill="none" stroke="#ffffff" stroke-width="30"
     stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
