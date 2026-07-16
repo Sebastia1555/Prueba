@@ -3,6 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
+      - claude/stock-market-api-integration-7ofclx
       - claude/padel-match-tracker-e1739l
       - main
   workflow_dispatch:
