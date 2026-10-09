@@ -1,126 +1,150 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import { v4 as uuidv4 } from 'uuid'
-import type { AppData, Match, Player, SetScore } from '../types'
-import { createFreshPlayer, recomputeElo } from '../lib/elo'
-import { clearData, loadData, saveData } from '../lib/storage'
-import { buildSampleData } from '../lib/sampleData'
-
-interface NewMatchInput {
-  date: string
-  teamA: [string, string]
-  teamB: [string, string]
-  sets: SetScore[]
-}
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import type { AppData, ListItem, ListKey, Member } from '../types'
+import { deleteFile, loadData, loadMeId, requestPersistentStorage, saveData, saveMeId } from '../lib/db'
+import { can as roleCan, type Permission } from '../lib/permissions'
+import { emptyData, normalizeData } from '../lib/store'
 
 interface DataContextValue {
-  players: Player[]
-  matches: Match[]
-  addPlayer: (name: string) => Player
-  renamePlayer: (id: string, name: string) => void
-  addMatch: (input: NewMatchInput) => void
-  updateMatch: (id: string, input: NewMatchInput) => void
-  deleteMatch: (id: string) => void
-  loadSampleData: () => void
-  resetAllData: () => void
+  data: AppData
+  ready: boolean
+  /** No se pudo guardar en este navegador (modo privado, sin espacio…). */
+  storageError: boolean
+  /** Perfil con el que se usa la app en este dispositivo. */
+  me: Member | undefined
+  setMeId: (id: string | null) => void
+  can: (perm: Permission) => boolean
+  memberById: (id: string | null | undefined) => Member | undefined
+  update: (fn: (d: AppData) => AppData) => void
+  upsert: <K extends ListKey>(key: K, item: ListItem<K>) => void
+  upsertMany: <K extends ListKey>(key: K, items: ListItem<K>[]) => void
+  remove: <K extends ListKey>(key: K, id: string) => void
+  /** Sustituye todos los datos (copia de seguridad, datos de ejemplo, borrar). */
+  replaceData: (data: AppData) => void
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
 
-function initialData(): AppData {
-  const stored = loadData()
-  if (stored) return stored
-  const sample = buildSampleData()
-  const recomputed = recomputeElo(sample.players, sample.matches)
-  const data = { players: recomputed, matches: sample.matches }
-  saveData(data)
-  return data
-}
-
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<AppData>(() => initialData())
+  const [data, setData] = useState<AppData>(() => emptyData())
+  const [ready, setReady] = useState(false)
+  const [storageError, setStorageError] = useState(false)
+  const [meId, setMeIdState] = useState<string | null>(() => loadMeId())
+  const dirty = useRef(false)
 
-  const persist = useCallback((next: AppData) => {
-    setData(next)
-    saveData(next)
+  useEffect(() => {
+    let cancelled = false
+    loadData()
+      .then((stored) => {
+        if (!cancelled && stored) setData(normalizeData(stored))
+      })
+      .catch(() => {
+        if (!cancelled) setStorageError(true)
+      })
+      .finally(() => {
+        if (!cancelled) setReady(true)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  const addPlayer = useCallback(
-    (name: string): Player => {
-      const trimmed = name.trim()
-      const newPlayer = createFreshPlayer(uuidv4(), trimmed)
-      const nextPlayers = [...data.players, newPlayer]
-      persist({ players: nextPlayers, matches: data.matches })
-      return newPlayer
+  useEffect(() => {
+    if (!ready || !dirty.current) return
+    saveData(data)
+      .then(() => setStorageError(false))
+      .catch(() => setStorageError(true))
+  }, [data, ready])
+
+  const update = useCallback((fn: (d: AppData) => AppData) => {
+    dirty.current = true
+    setData((prev) => fn(prev))
+    requestPersistentStorage()
+  }, [])
+
+  const upsert = useCallback(
+    <K extends ListKey>(key: K, item: ListItem<K>) => {
+      update((d) => {
+        const list = d[key] as ListItem<K>[]
+        const exists = list.some((x) => x.id === item.id)
+        const next = exists ? list.map((x) => (x.id === item.id ? item : x)) : [...list, item]
+        return { ...d, [key]: next }
+      })
     },
-    [data, persist],
+    [update],
   )
 
-  const renamePlayer = useCallback(
-    (id: string, name: string) => {
-      const trimmed = name.trim()
-      if (!trimmed) return
-      const nextPlayers = data.players.map((p) => (p.id === id ? { ...p, name: trimmed } : p))
-      persist({ players: nextPlayers, matches: data.matches })
+  const upsertMany = useCallback(
+    <K extends ListKey>(key: K, items: ListItem<K>[]) => {
+      if (!items.length) return
+      update((d) => {
+        const byId = new Map(items.map((x) => [x.id, x]))
+        const list = (d[key] as ListItem<K>[]).map((x) => {
+          const repl = byId.get(x.id)
+          if (repl) byId.delete(x.id)
+          return repl ?? x
+        })
+        return { ...d, [key]: [...list, ...byId.values()] }
+      })
     },
-    [data, persist],
+    [update],
   )
 
-  const addMatch = useCallback(
-    (input: NewMatchInput) => {
-      const newMatch: Match = {
-        id: uuidv4(),
-        createdAt: Date.now(),
-        ...input,
-      }
-      const nextMatches = [...data.matches, newMatch]
-      const nextPlayers = recomputeElo(data.players, nextMatches)
-      persist({ players: nextPlayers, matches: nextMatches })
+  const remove = useCallback(
+    <K extends ListKey>(key: K, id: string) => {
+      if (key === 'documents') void deleteFile(id).catch(() => undefined)
+      update((d) => ({ ...d, [key]: (d[key] as ListItem<K>[]).filter((x) => x.id !== id) }))
     },
-    [data, persist],
+    [update],
   )
 
-  const updateMatch = useCallback(
-    (id: string, input: NewMatchInput) => {
-      const nextMatches = data.matches.map((m) => (m.id === id ? { ...m, ...input } : m))
-      const nextPlayers = recomputeElo(data.players, nextMatches)
-      persist({ players: nextPlayers, matches: nextMatches })
-    },
-    [data, persist],
+  const replaceData = useCallback((next: AppData) => {
+    // Quien llama ya ha guardado (o borrado) los datos en IndexedDB.
+    dirty.current = false
+    setData(next)
+  }, [])
+
+  const setMeId = useCallback((id: string | null) => {
+    setMeIdState(id)
+    saveMeId(id)
+  }, [])
+
+  const me = useMemo(
+    () => data.members.find((m) => m.id === meId) ?? undefined,
+    [data.members, meId],
   )
 
-  const deleteMatch = useCallback(
-    (id: string) => {
-      const nextMatches = data.matches.filter((m) => m.id !== id)
-      const nextPlayers = recomputeElo(data.players, nextMatches)
-      persist({ players: nextPlayers, matches: nextMatches })
-    },
-    [data, persist],
+  const can = useCallback((perm: Permission) => roleCan(me?.role, perm), [me])
+
+  const memberById = useCallback(
+    (id: string | null | undefined) => (id ? data.members.find((m) => m.id === id) : undefined),
+    [data.members],
   )
-
-  const loadSampleData = useCallback(() => {
-    const sample = buildSampleData()
-    const recomputed = recomputeElo(sample.players, sample.matches)
-    persist({ players: recomputed, matches: sample.matches })
-  }, [persist])
-
-  const resetAllData = useCallback(() => {
-    clearData()
-    persist({ players: [], matches: [] })
-  }, [persist])
 
   const value = useMemo<DataContextValue>(
     () => ({
-      players: data.players,
-      matches: data.matches,
-      addPlayer,
-      renamePlayer,
-      addMatch,
-      updateMatch,
-      deleteMatch,
-      loadSampleData,
-      resetAllData,
+      data,
+      ready,
+      storageError,
+      me,
+      setMeId,
+      can,
+      memberById,
+      update,
+      upsert,
+      upsertMany,
+      remove,
+      replaceData,
     }),
-    [data, addPlayer, renamePlayer, addMatch, updateMatch, deleteMatch, loadSampleData, resetAllData],
+    [data, ready, storageError, me, setMeId, can, memberById, update, upsert, upsertMany, remove, replaceData],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

@@ -162,6 +162,7 @@ a,
 /* --- Inputs --------------------------------------------------------- */
 .ap-input {
   width: 100%;
+  min-width: 0;
   background: var(--ap-white);
   color: var(--ap-ink);
   border: 1px solid var(--ap-hairline);
@@ -215,5 +216,50 @@ a,
   }
   .ap-btn:active {
     transform: none;
+  }
+}
+
+/* --- Botones deshabilitados ---------------------------------------- */
+.ap-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --- Tablas para imprimir ------------------------------------------- */
+.sheet-table {
+  border-collapse: collapse;
+}
+.sheet-table th,
+.sheet-table td {
+  border: 1px solid var(--ap-hairline);
+  padding: 6px 8px;
+  vertical-align: top;
+}
+.sheet-table th {
+  background: var(--ap-parchment);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* --- Impresión ------------------------------------------------------ */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  body {
+    background: #fff;
+    font-size: 12pt;
+  }
+  .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  .ap-card {
+    border-color: var(--ap-hairline) !important;
+    break-inside: avoid;
   }
 }

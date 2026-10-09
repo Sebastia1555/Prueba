@@ -1,132 +1,231 @@
-import { useState } from 'react'
-import { HashRouter, NavLink, Route, Routes } from 'react-router-dom'
-import { DataProvider } from './context/DataContext'
-import { Ranking } from './pages/Ranking'
-import { History } from './pages/History'
-import { NewMatch } from './pages/NewMatch'
-import { Prediction } from './pages/Prediction'
-import { PlayerProfile } from './pages/PlayerProfile'
+import { useEffect, useRef, useState } from 'react'
+import { HashRouter, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { DataProvider, useData } from './context/DataContext'
+import { fetchIcs, parseIcs } from './lib/ics'
+import { MAIN_NAV, MORE_LINKS } from './lib/nav'
+import { ROLE_LABELS } from './lib/permissions'
+import { Icon } from './components/Icon'
+import { Modal } from './components/Modal'
+import { Avatar } from './components/ui'
+import { Home } from './pages/Home'
+import { Agenda } from './pages/Agenda'
+import { Availability } from './pages/Availability'
+import { Medications } from './pages/Medications'
+import { MedicationSheet } from './pages/MedicationSheet'
+import { Appointments } from './pages/Appointments'
+import { AppointmentDetail } from './pages/AppointmentDetail'
+import { DocumentsPage } from './pages/DocumentsPage'
+import { Diary } from './pages/Diary'
+import { Expenses } from './pages/Expenses'
+import { EmergencyCard } from './pages/EmergencyCard'
+import { Family } from './pages/Family'
 import { Settings } from './pages/Settings'
+import { More } from './pages/More'
+import { ProfilePicker, Welcome } from './pages/Welcome'
 
-const NAV_ITEMS = [
-  { to: '/', label: 'Ranking' },
-  { to: '/historial', label: 'Historial' },
-  { to: '/nuevo-partido', label: 'Nuevo partido' },
-  { to: '/prediccion', label: 'Predicción' },
-  { to: '/ajustes', label: 'Ajustes' },
-]
+const CALENDAR_REFRESH_MS = 6 * 3600_000
 
-function NavBar() {
+/** Vuelve a descargar los calendarios enlazados que lleven horas sin actualizarse. */
+function useCalendarAutoRefresh() {
+  const { data, ready, upsert } = useData()
+  const done = useRef(false)
+  useEffect(() => {
+    if (!ready || done.current) return
+    done.current = true
+    for (const cal of data.calendars) {
+      if (!cal.url || Date.now() - cal.importedAt < CALENDAR_REFRESH_MS) continue
+      fetchIcs(cal.url)
+        .then((text) => upsert('calendars', { ...cal, events: parseIcs(text), importedAt: Date.now() }))
+        .catch(() => undefined)
+    }
+  }, [ready, data.calendars, upsert])
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+  return null
+}
+
+function ProfileButton() {
+  const { data, me, setMeId } = useData()
   const [open, setOpen] = useState(false)
+  if (!me) return null
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-black/5"
+        aria-label="Cambiar de perfil"
+      >
+        <Avatar member={me} size={30} />
+        <span className="hidden text-[15px] font-medium sm:inline">{me.name}</span>
+      </button>
+      <Modal open={open} onClose={() => setOpen(false)} title="¿Quién usa la app?" maxWidth="max-w-sm">
+        <ul className="-mx-2">
+          {data.members.map((m) => (
+            <li key={m.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  setMeId(m.id)
+                  setOpen(false)
+                }}
+                className="flex w-full items-center gap-3 rounded-[12px] px-2 py-2.5 text-left hover:bg-black/[0.03]"
+              >
+                <Avatar member={m} size={36} />
+                <div className="flex-1">
+                  <div className="text-[16px] font-semibold">{m.name}</div>
+                  <div className="text-[13px] text-[color:var(--ap-ink-2)]">
+                    {m.relation} · {ROLE_LABELS[m.role]}
+                  </div>
+                </div>
+                {m.id === me.id && <Icon name="check" className="text-[color:var(--ap-blue)]" />}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[13px] text-[color:var(--ap-ink-3)]">
+          Versión de prueba: todos los perfiles comparten este dispositivo. En la versión en la nube cada uno entrará con
+          su cuenta.
+        </p>
+      </Modal>
+    </>
+  )
+}
 
+function Header() {
+  const { data, can } = useData()
+  const desktopLinks = [...MAIN_NAV, ...MORE_LINKS.slice(0, 4)].filter((l) => !l.perm || can(l.perm))
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `rounded-full px-3.5 py-1.5 text-[14px] tracking-[-0.01em] transition-colors ${
-      isActive
-        ? 'text-white'
-        : 'text-[color:var(--ap-ink-2)] hover:text-[color:var(--ap-ink)]'
+    `rounded-full px-3 py-1.5 text-[14px] tracking-[-0.01em] transition-colors ${
+      isActive ? 'text-white' : 'text-[color:var(--ap-ink-2)] hover:text-[color:var(--ap-ink)]'
     }`
-
-  const linkStyle = ({ isActive }: { isActive: boolean }) =>
-    isActive ? { backgroundColor: 'var(--ap-blue)' } : undefined
+  const linkStyle = ({ isActive }: { isActive: boolean }) => (isActive ? { backgroundColor: 'var(--ap-blue)' } : undefined)
 
   return (
     <header
-      className="sticky top-0 z-40 border-b"
+      className="no-print sticky top-0 z-40 border-b"
       style={{
         paddingTop: 'env(safe-area-inset-top)',
         borderColor: 'var(--ap-hairline-soft)',
-        backgroundColor: 'rgba(245, 245, 247, 0.8)',
+        backgroundColor: 'rgba(245, 245, 247, 0.85)',
         backdropFilter: 'saturate(180%) blur(20px)',
         WebkitBackdropFilter: 'saturate(180%) blur(20px)',
       }}
     >
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">🎾</span>
-          <span className="text-[19px] font-semibold tracking-[-0.02em] text-[color:var(--ap-ink)]">
-            Pádel
-          </span>
-        </div>
-
-        <nav className="hidden gap-1 sm:flex">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={linkClass}
-              style={linkStyle}
-            >
-              {item.label}
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
+        <NavLink to="/" className="flex min-w-0 items-center gap-2">
+          <img src="favicon.svg" alt="" width={26} height={26} className="rounded-[7px]" />
+          <span className="text-[19px] font-semibold tracking-[-0.02em]">Cuidamos</span>
+          {data.patient.name && (
+            <span className="truncate text-[15px] text-[color:var(--ap-ink-3)]">· {data.patient.name.split(' ')[0]}</span>
+          )}
+        </NavLink>
+        <nav className="hidden gap-0.5 lg:flex">
+          {desktopLinks.map((l) => (
+            <NavLink key={l.to} to={l.to} end={l.to === '/'} className={linkClass} style={linkStyle}>
+              {l.label}
             </NavLink>
           ))}
+          <NavLink to="/mas" className={linkClass} style={linkStyle}>
+            Más
+          </NavLink>
         </nav>
-
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="Abrir menú"
-          aria-expanded={open}
-          className="rounded-full p-2 text-[color:var(--ap-ink-2)] hover:bg-black/5 sm:hidden"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            {open ? (
-              <>
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </>
-            ) : (
-              <>
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </>
-            )}
-          </svg>
-        </button>
+        <ProfileButton />
       </div>
-
-      {open && (
-        <nav
-          className="flex flex-col gap-1 border-t px-4 py-2 sm:hidden"
-          style={{ borderColor: 'var(--ap-hairline-soft)' }}
-        >
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={linkClass}
-              style={linkStyle}
-              onClick={() => setOpen(false)}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-      )}
     </header>
+  )
+}
+
+function BottomNav() {
+  const items = [...MAIN_NAV, { to: '/mas', label: 'Más', icon: 'more' as const, description: '' }]
+  const { pathname } = useLocation()
+  const moreActive = MORE_LINKS.some((l) => pathname.startsWith(l.to)) || pathname === '/mas'
+  return (
+    <nav
+      className="no-print fixed inset-x-0 bottom-0 z-40 border-t lg:hidden"
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        borderColor: 'var(--ap-hairline-soft)',
+        backgroundColor: 'rgba(250, 250, 252, 0.92)',
+        backdropFilter: 'saturate(180%) blur(20px)',
+        WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+      }}
+    >
+      <div className="mx-auto grid max-w-lg grid-cols-5">
+        {items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === '/'}
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
+                isActive || (item.to === '/mas' && moreActive) ? 'text-[color:var(--ap-blue)]' : 'text-[color:var(--ap-ink-3)]'
+              }`
+            }
+          >
+            <Icon name={item.icon} size={24} />
+            {item.label}
+          </NavLink>
+        ))}
+      </div>
+    </nav>
+  )
+}
+
+function Shell() {
+  const { data, ready, me, storageError } = useData()
+  useCalendarAutoRefresh()
+
+  if (!ready) {
+    return <div className="flex min-h-screen items-center justify-center text-[color:var(--ap-ink-3)]">Cargando…</div>
+  }
+  if (data.members.length === 0) return <Welcome />
+  if (!me) return <ProfilePicker />
+
+  return (
+    <HashRouter>
+      <ScrollToTop />
+      <div className="min-h-screen">
+        <Header />
+        {storageError && (
+          <div className="no-print px-4 py-2 text-center text-[14px]" style={{ backgroundColor: 'var(--loss-bg)', color: 'var(--loss)' }}>
+            No se están pudiendo guardar los datos en este navegador (¿modo privado o sin espacio?).
+          </div>
+        )}
+        <main className="mx-auto max-w-5xl px-4 pt-5 pb-28 lg:pb-12">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/agenda" element={<Agenda />} />
+            <Route path="/disponibilidad" element={<Availability />} />
+            <Route path="/medicacion" element={<Medications />} />
+            <Route path="/medicacion/imprimir" element={<MedicationSheet />} />
+            <Route path="/citas" element={<Appointments />} />
+            <Route path="/citas/:id" element={<AppointmentDetail />} />
+            <Route path="/documentos" element={<DocumentsPage />} />
+            <Route path="/diario" element={<Diary />} />
+            <Route path="/gastos" element={<Expenses />} />
+            <Route path="/ficha" element={<EmergencyCard />} />
+            <Route path="/familia" element={<Family />} />
+            <Route path="/ajustes" element={<Settings />} />
+            <Route path="/mas" element={<More />} />
+            <Route path="*" element={<Home />} />
+          </Routes>
+        </main>
+        <BottomNav />
+      </div>
+    </HashRouter>
   )
 }
 
 function App() {
   return (
     <DataProvider>
-      <HashRouter>
-        <div className="min-h-screen">
-          <NavBar />
-          <main>
-            <Routes>
-              <Route path="/" element={<Ranking />} />
-              <Route path="/historial" element={<History />} />
-              <Route path="/nuevo-partido" element={<NewMatch />} />
-              <Route path="/prediccion" element={<Prediction />} />
-              <Route path="/ajustes" element={<Settings />} />
-              <Route path="/jugador/:id" element={<PlayerProfile />} />
-            </Routes>
-          </main>
-        </div>
-      </HashRouter>
+      <Shell />
     </DataProvider>
   )
 }
