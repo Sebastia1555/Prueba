@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../context/DataContext'
 import { addDays, dateRange, formatDate, formatDayShort, startOfWeek, todayISO, WEEKDAYS } from '../lib/dates'
-import { formatAmount, isScheduledOn, scheduleSummary } from '../lib/medication'
+import { formatAmount, isFinished, isScheduledOn, isUpcoming, scheduleSummary } from '../lib/medication'
 import { Icon } from '../components/Icon'
 import { Checkbox } from '../components/ui'
 import { IS_PREVIEW } from '../lib/env'
@@ -12,14 +12,19 @@ export function MedicationSheet() {
   const { data } = useData()
   const [withLog, setWithLog] = useState(true)
   const today = todayISO()
-  const meds = data.medications.filter((m) => m.active && (!m.endDate || m.endDate >= today))
+  const live = data.medications.filter((m) => m.active && !isFinished(m, today))
+  const meds = live.filter((m) => !isUpcoming(m, today))
+  const upcoming = live.filter((m) => isUpcoming(m, today)).sort((a, b) => a.startDate.localeCompare(b.startDate))
   const scheduled = meds.filter((m) => !m.asNeeded && m.doses.length)
   const prn = meds.filter((m) => m.asNeeded)
   const times = [...new Set(scheduled.flatMap((m) => m.doses.map((d) => d.time)))].sort()
   const weekFrom = startOfWeek(today)
   const week = dateRange(weekFrom, addDays(weekFrom, 6))
-  const rows = times.flatMap((time) =>
-    scheduled
+  // El registro semanal incluye también lo que empieza esta semana.
+  const logMeds = [...scheduled, ...upcoming.filter((m) => !m.asNeeded && m.doses.length && m.startDate <= week[6])]
+  const logTimes = [...new Set(logMeds.flatMap((m) => m.doses.map((d) => d.time)))].sort()
+  const rows = logTimes.flatMap((time) =>
+    logMeds
       .filter((m) => m.doses.some((d) => d.time === time))
       .map((m) => ({ time, med: m, amount: m.doses.find((d) => d.time === time)!.amount })),
   )
@@ -83,12 +88,31 @@ export function MedicationSheet() {
                     })}
                     <td>
                       {m.frequency !== 'daily' && <div className="font-medium">{scheduleSummary(m).split(' · ')[0]}</div>}
+                      {m.endDate && <div className="font-medium">Hasta el {formatDate(m.endDate)}</div>}
                       {m.instructions}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {upcoming.length > 0 && (
+          <div className="mt-5">
+            <h2 className="text-[17px]">Empiezan más adelante</h2>
+            <ul className="mt-1 list-disc pl-5 text-[14px]">
+              {upcoming.map((m) => (
+                <li key={m.id}>
+                  <strong>
+                    {m.name} {m.strength}
+                  </strong>{' '}
+                  — desde el {formatDate(m.startDate)}
+                  {m.endDate && ` hasta el ${formatDate(m.endDate)}`} · {scheduleSummary(m)}
+                  {!m.asNeeded && m.doses.length > 0 && ` (${m.doses.map((d) => formatAmount(d.amount, m.form)).join(' / ')})`}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

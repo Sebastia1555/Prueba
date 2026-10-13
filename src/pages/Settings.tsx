@@ -160,9 +160,8 @@ function BackupSection() {
 
   const doImport = async (file: File) => {
     try {
-      const next = await importBackup(file)
-      replaceData(next)
-      setMessage({ tone: 'green', text: 'Copia restaurada. Elige quién eres en este dispositivo.' })
+      const { data: next, persisted } = await importBackup(file)
+      replaceData(next, persisted)
       setMeId(null)
     } catch (e) {
       setMessage({ tone: 'red', text: e instanceof Error ? e.message : 'No se pudo restaurar la copia.' })
@@ -171,8 +170,12 @@ function BackupSection() {
 
   const loadSample = async () => {
     const { data: sample, files } = buildSampleData()
-    await replaceAllData(sample, files)
-    replaceData(sample)
+    const outcome = await replaceAllData(sample, files)
+    if (outcome === 'failed') {
+      setMessage({ tone: 'red', text: 'No hay espacio en este dispositivo para cargar los datos de ejemplo. No se ha cambiado nada.' })
+      return
+    }
+    replaceData(sample, outcome === 'stored')
     setMeId(sample.members[0].id)
     setMessage({ tone: 'green', text: 'Datos de ejemplo cargados. Estás como Ana (administradora).' })
   }

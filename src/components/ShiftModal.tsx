@@ -3,7 +3,7 @@ import type { CareSlot, Shift } from '../types'
 import { useData } from '../context/DataContext'
 import { addDays, endOfMonth, formatDayLong, formatHours, startOfMonth } from '../lib/dates'
 import { newId } from '../lib/labels'
-import { findShift, minutesByMember, slotInterval } from '../lib/shifts'
+import { blocking, findShift, memberConflicts, minutesByMember, slotInterval } from '../lib/shifts'
 import { Modal } from './Modal'
 import { MemberAvailability } from './MemberAvailability'
 import { Checkbox, Field, MemberTag, Notice } from './ui'
@@ -28,9 +28,12 @@ export function ShiftModal({ date, slot, onClose }: Props) {
   const canEdit = can('editShifts')
   const isMine = !!shift && shift.memberId === me?.id
   const assigned = memberById(shift?.memberId)
-  const seriesCount = shift?.seriesId
-    ? data.shifts.filter((s) => s.seriesId === shift.seriesId && s.date > date).length
-    : 0
+  // Turnos siguientes de la serie semanal que siguen siendo de la misma
+  // persona: los que alguien cubrió aparte ya no se tocan desde aquí.
+  const seriesRest = shift?.seriesId
+    ? data.shifts.filter((s) => s.seriesId === shift.seriesId && s.memberId === shift.memberId && s.date > date)
+    : []
+  const seriesCount = seriesRest.length
 
   const monthLoad = useMemo(
     () => minutesByMember(data, startOfMonth(date), endOfMonth(date)),
@@ -42,10 +45,12 @@ export function ShiftModal({ date, slot, onClose }: Props) {
   const takeMyself = () => {
     if (!me) return
     upsert('shifts', {
-      ...(shift ?? { id: newId(), date, slotId: slot.id, seriesId: null }),
+      ...(shift ?? { id: newId(), date, slotId: slot.id }),
       memberId: me.id,
       note: shift?.coverRequested ? '' : (shift?.note ?? ''),
       coverRequested: false,
+      // Quien cubre un turno suelto no pasa a formar parte de la serie de otro.
+      seriesId: null,
     })
     onClose()
   }
@@ -68,30 +73,42 @@ export function ShiftModal({ date, slot, onClose }: Props) {
       coverRequested: false,
     }
     const changedPerson = base.memberId !== selectedId
+    const doRepeat = repeat && !applySeries
     const current: Shift = {
       ...base,
       memberId: selectedId,
       note,
       coverRequested: changedPerson ? false : base.coverRequested,
+      // Cambiar solo este turno lo saca de su serie semanal.
+      seriesId: changedPerson && !applySeries ? null : base.seriesId,
     }
     const items: Shift[] = [current]
+    const freeOn = (d: string, existingId?: string) =>
+      blocking(memberConflicts(data, selectedId, ...slotInterval(slot, d), { shiftId: existingId })).length === 0
 
+    let taken = 0
+    let busy = 0
     if (applySeries && shift?.seriesId) {
-      for (const s of data.shifts) {
-        if (s.seriesId === shift.seriesId && s.date > date) {
-          items.push({ ...s, memberId: selectedId, coverRequested: false })
+      for (const s of seriesRest) {
+        if (s.memberId !== selectedId && !freeOn(s.date, s.id)) {
+          busy++
+          continue
         }
+        items.push({ ...s, memberId: selectedId, coverRequested: false })
       }
     }
 
-    let skipped = 0
-    if (repeat) {
+    if (doRepeat) {
       const seriesId = newId()
       current.seriesId = seriesId
       for (let d = addDays(date, 7); d <= repeatUntil; d = addDays(d, 7)) {
         const existing = findShift(data.shifts, d, slot.id)
         if (existing && existing.memberId !== selectedId) {
-          skipped++
+          taken++
+          continue
+        }
+        if (!freeOn(d, existing?.id)) {
+          busy++
           continue
         }
         items.push(
@@ -103,10 +120,13 @@ export function ShiftModal({ date, slot, onClose }: Props) {
     }
 
     upsertMany('shifts', items)
-    if (skipped > 0) {
-      setMessage(
-        `Guardado. ${skipped === 1 ? '1 semana ya tenía' : `${skipped} semanas ya tenían`} a otra persona en esa franja y no se ha cambiado.`,
-      )
+    const weeks = (n: number) => (n === 1 ? '1 semana en la que' : `${n} semanas en las que`)
+    const notes = [
+      taken > 0 && `${weeks(taken)} ya había otra persona en esa franja`,
+      busy > 0 && `${weeks(busy)} ${memberById(selectedId)?.name ?? 'esa persona'} tiene otro compromiso`,
+    ].filter(Boolean)
+    if (notes.length) {
+      setMessage(`Guardado. ${taken + busy === 1 ? 'No se ha tocado' : 'No se han tocado'} ${notes.join(' ni ')}.`)
     } else {
       onClose()
     }
@@ -114,14 +134,8 @@ export function ShiftModal({ date, slot, onClose }: Props) {
 
   const unassign = () => {
     if (!shift) return
-    update((d) => ({
-      ...d,
-      shifts: d.shifts.filter(
-        (s) =>
-          s.id !== shift.id &&
-          !(applySeries && shift.seriesId && s.seriesId === shift.seriesId && s.date > date),
-      ),
-    }))
+    const removed = new Set([shift.id, ...(applySeries ? seriesRest.map((s) => s.id) : [])])
+    update((d) => ({ ...d, shifts: d.shifts.filter((s) => !removed.has(s.id)) }))
     onClose()
   }
 
@@ -178,7 +192,13 @@ export function ShiftModal({ date, slot, onClose }: Props) {
 
           <div className="mt-3 space-y-1">
             {shift?.seriesId && seriesCount > 0 && (
-              <Checkbox checked={applySeries} onChange={setApplySeries}>
+              <Checkbox
+                checked={applySeries}
+                onChange={(v) => {
+                  setApplySeries(v)
+                  if (v) setRepeat(false)
+                }}
+              >
                 Aplicar también a los {seriesCount} turnos siguientes de esta serie semanal
               </Checkbox>
             )}

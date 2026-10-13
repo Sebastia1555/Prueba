@@ -50,12 +50,21 @@ export function parseIcs(text: string, now = Date.now()): CalendarEvent[] {
 
   const out: CalendarEvent[] = []
   const push = (comp: IcalComponent, title: string, start: IcalTime, end: IcalTime) => {
-    if (isFree(comp)) return
+    if (isCancelled(comp)) return
     const s = start.toJSDate().getTime()
     let e = end.toJSDate().getTime()
     if (e <= s) e = s + (start.isDate ? DAY_MS : 60 * 60 * 1000)
     if (e < windowStart || s > windowEnd) return
-    out.push({ start: s, end: e, title: title || 'Ocupado', allDay: start.isDate })
+    let tentative = false
+    if (isMarkedFree(comp)) {
+      // Google, Apple y Outlook marcan por defecto como "libre" los eventos de
+      // día completo. Si dura varios días suele ser una ausencia (vacaciones,
+      // viaje): cuenta como ocupado. Si es de un día, solo se avisa. Los
+      // eventos con hora marcados como libres no cuentan.
+      if (!start.isDate) return
+      tentative = e - s < 2 * DAY_MS - 3600_000
+    }
+    out.push({ start: s, end: e, title: title || 'Ocupado', allDay: start.isDate, ...(tentative ? { tentative } : {}) })
   }
 
   for (const ev of singles) {
@@ -76,10 +85,12 @@ export function parseIcs(text: string, now = Date.now()): CalendarEvent[] {
   return out.sort((a, b) => a.start - b.start)
 }
 
-function isFree(comp: IcalComponent): boolean {
-  const status = String(comp.getFirstPropertyValue('status') ?? '').toUpperCase()
-  const transp = String(comp.getFirstPropertyValue('transp') ?? '').toUpperCase()
-  return status === 'CANCELLED' || transp === 'TRANSPARENT'
+function isCancelled(comp: IcalComponent): boolean {
+  return String(comp.getFirstPropertyValue('status') ?? '').toUpperCase() === 'CANCELLED'
+}
+
+function isMarkedFree(comp: IcalComponent): boolean {
+  return String(comp.getFirstPropertyValue('transp') ?? '').toUpperCase() === 'TRANSPARENT'
 }
 
 export function normalizeCalendarUrl(url: string): string {

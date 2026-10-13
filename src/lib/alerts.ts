@@ -1,6 +1,6 @@
 import type { AppData } from '../types'
 import { addDays, dateTimeMs, diffDays, formatDayMedium, formatDayShort, formatInDays, msToISODate } from './dates'
-import { dosesForDay, isOverdue, prescriptionDaysLeft, stockStatus } from './medication'
+import { isFinished, overdueDoses, prescriptionDaysLeft, stockStatus } from './medication'
 import { coverage, slotInterval } from './shifts'
 
 export type AlertLevel = 'danger' | 'warn' | 'info'
@@ -72,7 +72,7 @@ export function computeAlerts(data: AppData, meId: string | undefined, now = Dat
   }
 
   // Tomas atrasadas hoy.
-  const overdue = dosesForDay(data.medications, data.doseLogs, today).filter((d) => isOverdue(d, now))
+  const overdue = overdueDoses(data.medications, data.doseLogs, now)
   if (overdue.length) {
     alerts.push({
       id: 'overdue',
@@ -81,7 +81,7 @@ export function computeAlerts(data: AppData, meId: string | undefined, now = Dat
       title: overdue.length === 1 ? '1 toma sin registrar' : `${overdue.length} tomas sin registrar`,
       detail: overdue
         .slice(0, 3)
-        .map((d) => `${d.time} ${d.med.name}`)
+        .map((d) => `${d.date === today ? '' : 'anoche '}${d.time} ${d.med.name}`)
         .join(' · '),
       to: '/medicacion',
     })
@@ -89,7 +89,8 @@ export function computeAlerts(data: AppData, meId: string | undefined, now = Dat
 
   // Stock y recetas.
   for (const med of data.medications) {
-    if (!med.active) continue
+    // Los tratamientos suspendidos o ya terminados no necesitan más compras ni recetas.
+    if (!med.active || isFinished(med, today)) continue
     const st = stockStatus(med, data.doseLogs, now)
     const buyer = med.purchaseClaimedBy ? names.get(med.purchaseClaimedBy) : null
     const who = buyer ? `Se encarga ${buyer}.` : 'Nadie se ha encargado aún de comprarlo.'

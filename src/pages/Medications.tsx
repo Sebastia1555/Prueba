@@ -20,7 +20,9 @@ import { newId } from '../lib/labels'
 import {
   dosesForDay,
   formatAmount,
+  isFinished,
   isOverdue,
+  isUpcoming,
   prescriptionDaysLeft,
   scheduleSummary,
   stockStatus,
@@ -340,10 +342,14 @@ function PrnModal({ med, date, onClose }: { med: Medication; date: string; onClo
 function ScheduleTab({ onEdit }: { onEdit: (m: Medication) => void }) {
   const { data, can } = useData()
   const today = todayISO()
+  const current = (m: Medication) => m.active && !isFinished(m, today)
   const active = data.medications
-    .filter((m) => m.active && (!m.endDate || m.endDate >= today))
+    .filter((m) => current(m) && !isUpcoming(m, today))
     .sort((a, b) => Number(a.asNeeded) - Number(b.asNeeded) || (a.doses[0]?.time ?? '').localeCompare(b.doses[0]?.time ?? ''))
-  const inactive = data.medications.filter((m) => !active.includes(m))
+  const upcoming = data.medications
+    .filter((m) => current(m) && isUpcoming(m, today))
+    .sort((a, b) => a.startDate.localeCompare(b.startDate))
+  const inactive = data.medications.filter((m) => !current(m))
 
   const card = (m: Medication) => (
     <li key={m.id} style={{ borderColor: 'var(--ap-hairline-soft)' }}>
@@ -360,6 +366,7 @@ function ScheduleTab({ onEdit }: { onEdit: (m: Medication) => void }) {
               {m.name} <span className="font-normal text-[color:var(--ap-ink-2)]">{m.strength}</span>
             </span>
             {m.asNeeded && <Badge tone="blue">Si precisa</Badge>}
+            {isUpcoming(m, today) && <Badge tone="amber">Empieza el {formatDate(m.startDate)}</Badge>}
             {m.endDate && <Badge>Hasta {formatDate(m.endDate)}</Badge>}
             {!m.active && <Badge tone="red">Suspendido</Badge>}
           </div>
@@ -389,6 +396,11 @@ function ScheduleTab({ onEdit }: { onEdit: (m: Medication) => void }) {
       ) : (
         <ul className="ap-card divide-y overflow-hidden">{active.map(card)}</ul>
       )}
+      {upcoming.length > 0 && (
+        <Section title="Empiezan más adelante" className="mt-6">
+          <ul className="ap-card divide-y overflow-hidden">{upcoming.map(card)}</ul>
+        </Section>
+      )}
       {inactive.length > 0 && (
         <Section title="Suspendidos o finalizados" className="mt-6">
           <ul className="ap-card divide-y overflow-hidden opacity-75">{inactive.map(card)}</ul>
@@ -416,7 +428,7 @@ function StockTab() {
   const canManage = can('manageStock')
 
   const rows = data.medications
-    .filter((m) => m.active)
+    .filter((m) => m.active && !isFinished(m, msToISODate(now)))
     .map((m) => ({ m, st: stockStatus(m, data.doseLogs, now) }))
     .sort((a, b) => (a.st.daysLeft ?? 9999) - (b.st.daysLeft ?? 9999))
 

@@ -28,9 +28,16 @@ export function slotsForDay(slots: CareSlot[], date: string): CareSlot[] {
   return sortSlots(slots.filter((s) => s.weekdays.includes(wd)))
 }
 
+/** Duración nominal de la franja (sin tener en cuenta cambios de hora). */
 export function slotMinutes(slot: CareSlot): number {
   const diff = timeToMinutes(slot.end) - timeToMinutes(slot.start)
   return diff > 0 ? diff : diff + 24 * 60
+}
+
+/** Duración real de la franja ese día (la noche del cambio de hora dura una hora más o menos). */
+export function slotMinutesOn(slot: CareSlot, date: string): number {
+  const [s, e] = slotInterval(slot, date)
+  return Math.round((e - s) / 60_000)
 }
 
 export function slotInterval(slot: CareSlot, date: string): [number, number] {
@@ -66,7 +73,7 @@ export function minutesByMember(data: AppData, from: string, to: string): Map<st
     if (s.date < from || s.date > to) continue
     const slot = slots.get(s.slotId)
     if (!slot) continue
-    out.set(s.memberId, (out.get(s.memberId) ?? 0) + slotMinutes(slot))
+    out.set(s.memberId, (out.get(s.memberId) ?? 0) + slotMinutesOn(slot, s.date))
   }
   return out
 }
@@ -102,6 +109,13 @@ export interface Conflict {
   start: number
   end: number
   private: boolean
+  /** Solo un aviso (evento de calendario marcado como libre): no bloquea. */
+  tentative?: boolean
+}
+
+/** Conflictos que de verdad impiden estar disponible. */
+export function blocking(conflicts: Conflict[]): Conflict[] {
+  return conflicts.filter((c) => !c.tentative)
 }
 
 function blockAppliesOn(block: BusyBlock, date: string): boolean {
@@ -150,7 +164,15 @@ export function memberConflicts(
     if (cal.memberId !== memberId) continue
     for (const ev of cal.events) {
       if (overlaps(start, end, ev.start, ev.end)) {
-        out.push({ kind: 'calendar', memberId, title: ev.title, start: ev.start, end: ev.end, private: cal.private })
+        out.push({
+          kind: 'calendar',
+          memberId,
+          title: ev.title,
+          start: ev.start,
+          end: ev.end,
+          private: cal.private,
+          tentative: ev.tentative,
+        })
       }
     }
   }
@@ -193,7 +215,8 @@ export interface Proposal {
 
 /**
  * Propone quién cubre cada franja libre: solo personas sin conflictos y,
- * entre ellas, quien menos horas lleva en el mes (y menos turnos ese día).
+ * entre ellas, quien menos horas lleva en el mes; a igualdad, quien tiene
+ * menos turnos ese día.
  */
 export function proposeAssignments(
   data: AppData,
@@ -213,16 +236,16 @@ export function proposeAssignments(
   for (const cell of cells) {
     const [s, e] = slotInterval(cell.slot, cell.date)
     const candidates = members
-      .filter((m) => memberConflicts(working, m.id, s, e).length === 0)
+      .filter((m) => blocking(memberConflicts(working, m.id, s, e)).length === 0)
       .sort(
         (a, b) =>
-          (perDay.get(`${a.id}|${cell.date}`) ?? 0) - (perDay.get(`${b.id}|${cell.date}`) ?? 0) ||
           (load.get(a.id) ?? 0) - (load.get(b.id) ?? 0) ||
+          (perDay.get(`${a.id}|${cell.date}`) ?? 0) - (perDay.get(`${b.id}|${cell.date}`) ?? 0) ||
           a.name.localeCompare(b.name),
       )
     const chosen = candidates[0]
     if (chosen) {
-      const minutes = slotMinutes(cell.slot)
+      const minutes = slotMinutesOn(cell.slot, cell.date)
       load.set(chosen.id, (load.get(chosen.id) ?? 0) + minutes)
       const key = `${chosen.id}|${cell.date}`
       perDay.set(key, (perDay.get(key) ?? 0) + 1)

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DocCategory, DocumentMeta } from '../types'
 import { useData } from '../context/DataContext'
-import { getFile, saveFile } from '../lib/db'
+import { deleteFile, getFile, saveFile } from '../lib/db'
 import { formatDate, todayISO } from '../lib/dates'
 import { downloadMessage, offerDownload } from '../lib/download'
 import { IS_PREVIEW } from '../lib/env'
@@ -87,8 +87,8 @@ function UploadModal({
   const save = async () => {
     setSaving(true)
     setError(null)
+    const metas: DocumentMeta[] = []
     try {
-      const metas: DocumentMeta[] = []
       for (const f of valid) {
         const id = newId()
         await saveFile(id, f)
@@ -109,6 +109,8 @@ function UploadModal({
       upsertMany('documents', metas)
       onClose()
     } catch {
+      // No dejar archivos sueltos de una subida a medias.
+      for (const m of metas) await deleteFile(m.id).catch(() => undefined)
       setError('No se ha podido guardar. Puede que el dispositivo se haya quedado sin espacio.')
       setSaving(false)
     }

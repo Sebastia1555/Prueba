@@ -3,7 +3,7 @@ import type { Shift } from '../types'
 import { useData } from '../context/DataContext'
 import { endOfMonth, formatDayMedium, formatHours, startOfMonth, todayISO } from '../lib/dates'
 import { newId } from '../lib/labels'
-import { coverage, proposeAssignments, slotInterval, slotMinutes } from '../lib/shifts'
+import { coverage, proposeAssignments, slotInterval, slotMinutesOn } from '../lib/shifts'
 import { Modal } from './Modal'
 import { Avatar, Checkbox, EmptyState, MemberTag, Notice } from './ui'
 
@@ -34,7 +34,7 @@ export function ProposalModal({ from, to, rangeLabel, onClose }: Props) {
   const accepted = proposals.filter((p) => p.memberId && !rejected.has(keyOf(p.cell.date, p.cell.slot.id)))
 
   const totals = new Map<string, number>()
-  for (const p of accepted) totals.set(p.memberId!, (totals.get(p.memberId!) ?? 0) + slotMinutes(p.cell.slot))
+  for (const p of accepted) totals.set(p.memberId!, (totals.get(p.memberId!) ?? 0) + slotMinutesOn(p.cell.slot, p.cell.date))
 
   const apply = () => {
     const shifts: Shift[] = accepted.map((p) => ({

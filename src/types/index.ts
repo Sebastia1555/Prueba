@@ -91,6 +91,11 @@ export interface CalendarEvent {
   end: number
   title: string
   allDay: boolean
+  /**
+   * Evento de un día marcado como "libre" en su calendario (recordatorios,
+   * cumpleaños…): se avisa, pero no impide asignar turnos.
+   */
+  tentative?: boolean
 }
 
 /** Calendario personal importado (.ics) para conocer la disponibilidad. */

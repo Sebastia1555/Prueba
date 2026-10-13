@@ -9,8 +9,11 @@ interface ModalProps {
   maxWidth?: string
 }
 
-// Pila de modales abiertos: Escape solo cierra el de más arriba.
+// Pila de modales abiertos: Escape solo cierra el de más arriba, y el scroll
+// de la página se bloquea mientras haya alguno abierto (sea cual sea el orden
+// en que se cierren).
 const stack: string[] = []
+let overflowBeforeLock = ''
 
 export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }: ModalProps) {
   const id = useId()
@@ -21,18 +24,20 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }:
 
   useEffect(() => {
     if (!open) return
+    if (stack.length === 0) {
+      overflowBeforeLock = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+    }
     stack.push(id)
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && stack[stack.length - 1] === id) onCloseRef.current()
     }
     document.addEventListener('keydown', onKey)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prevOverflow
       const i = stack.lastIndexOf(id)
       if (i >= 0) stack.splice(i, 1)
+      if (stack.length === 0) document.body.style.overflow = overflowBeforeLock
     }
   }, [open, id])
 

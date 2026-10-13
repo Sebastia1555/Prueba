@@ -1,9 +1,11 @@
 // Persistencia local con IndexedDB: el estado de la app y los archivos
 // adjuntos (informes, analíticas…) que no cabrían en localStorage.
 //
-// Si el navegador no deja usar IndexedDB (ventana privada, visor con el
-// almacenamiento bloqueado…), los archivos se guardan en memoria para que la
-// sesión funcione igual, aunque se pierdan al cerrar.
+// Si el navegador no deja usar IndexedDB en absoluto (ventana privada, visor
+// con el almacenamiento bloqueado…), los archivos se guardan en memoria para
+// que la sesión funcione igual, aunque se pierdan al cerrar. Si la base de
+// datos funciona pero una escritura falla (p. ej. sin espacio), el error se
+// propaga para poder avisar.
 
 import type { AppData } from '../types'
 
@@ -49,6 +51,14 @@ function run<T>(store: string, mode: IDBTransactionMode, fn: (s: IDBObjectStore)
   )
 }
 
+/** ¿Este navegador deja usar IndexedDB? (no en ventanas privadas de algunos navegadores ni en marcos aislados) */
+export function storageAvailable(): Promise<boolean> {
+  return openDb().then(
+    () => true,
+    () => false,
+  )
+}
+
 export function loadData(): Promise<AppData | null> {
   return run<AppData | undefined>(KV, 'readonly', (s) => s.get(DATA_KEY)).then((d) => d ?? null)
 }
@@ -57,11 +67,48 @@ export function saveData(data: AppData): Promise<void> {
   return run(KV, 'readwrite', (s) => s.put(data, DATA_KEY))
 }
 
-export async function saveFile(id: string, blob: Blob): Promise<void> {
+/** `'memory'` si no hay almacenamiento persistente y el archivo solo vive en esta sesión. */
+export async function saveFile(id: string, blob: Blob): Promise<'stored' | 'memory'> {
   try {
-    await run(FILES, 'readwrite', (s) => s.put(blob, id))
+    await openDb()
   } catch {
     memoryFiles.set(id, blob)
+    return 'memory'
+  }
+  await run(FILES, 'readwrite', (s) => s.put(blob, id))
+  return 'stored'
+}
+
+/** Deja en memoria (sin tocar IndexedDB) exactamente estos archivos. */
+export function keepFilesInMemory(files: Record<string, Blob>): void {
+  memoryFiles.clear()
+  for (const [id, blob] of Object.entries(files)) memoryFiles.set(id, blob)
+}
+
+/** Ids de los archivos guardados de forma permanente (vacío si no hay almacenamiento). */
+export async function listFileIds(): Promise<Set<string>> {
+  try {
+    const ids = await run<IDBValidKey[]>(FILES, 'readonly', (s) => s.getAllKeys())
+    return new Set(ids.map(String))
+  } catch {
+    return new Set()
+  }
+}
+
+/** Borra los archivos guardados cuyo id no esté en `keep`. */
+export async function deleteFilesExcept(keep: Set<string>): Promise<void> {
+  for (const id of [...memoryFiles.keys()]) if (!keep.has(id)) memoryFiles.delete(id)
+  try {
+    const stale = [...(await listFileIds())].filter((id) => !keep.has(id))
+    if (stale.length) {
+      await run(FILES, 'readwrite', (s) => {
+        let last: IDBRequest = s.count()
+        for (const id of stale) last = s.delete(id)
+        return last
+      })
+    }
+  } catch {
+    // sin almacenamiento persistente
   }
 }
 

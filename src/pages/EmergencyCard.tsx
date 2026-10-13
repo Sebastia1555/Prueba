@@ -3,10 +3,10 @@ import type { EmergencyContact, Patient } from '../types'
 import { useData } from '../context/DataContext'
 import { ageFrom, formatDate, todayISO } from '../lib/dates'
 import { newId } from '../lib/labels'
-import { formatAmount, scheduleSummary } from '../lib/medication'
+import { formatAmount, isFinished, isUpcoming, scheduleSummary } from '../lib/medication'
 import { Modal } from '../components/Modal'
 import { Icon } from '../components/Icon'
-import { Field, PageHeader } from '../components/ui'
+import { Field, PageHeader, PhoneLink } from '../components/ui'
 import { IS_PREVIEW } from '../lib/env'
 
 /** Ficha con todo lo que hay que saber en una urgencia. */
@@ -16,7 +16,7 @@ export function EmergencyCard() {
   const p = data.patient
   const age = ageFrom(p.birthDate)
   const today = todayISO()
-  const meds = data.medications.filter((m) => m.active && (!m.endDate || m.endDate >= today))
+  const meds = data.medications.filter((m) => m.active && !isFinished(m, today) && !isUpcoming(m, today))
 
   const row = (label: string, value: string, highlight = false) =>
     value ? (
@@ -110,9 +110,9 @@ export function EmergencyCard() {
                     <strong>{c.name}</strong>
                     {c.relation && <span className="text-[color:var(--ap-ink-2)]"> · {c.relation}</span>}
                   </span>
-                  <a href={`tel:${c.phone.replace(/\s/g, '')}`} className="ap-btn ap-btn-sm ap-btn-neutral">
+                  <PhoneLink phone={c.phone} className="ap-btn ap-btn-sm ap-btn-neutral">
                     <Icon name="phone" size={16} /> {c.phone}
-                  </a>
+                  </PhoneLink>
                 </li>
               ))}
             </ul>

@@ -15,11 +15,25 @@ export function formatMoney(cents: number): string {
   return euros.format(cents / 100)
 }
 
-/** "12,50" o "12.50" → 1250 céntimos. */
+/**
+ * Importe escrito a la española → céntimos: "12,50" → 1250, "1.200" → 120000,
+ * "1.200,50" → 120050. También acepta "12.50". Devuelve null si es ambiguo o
+ * no es un importe positivo con como mucho dos decimales.
+ */
 export function parseMoney(input: string): number | null {
   const clean = input.trim().replace(/\s|€/g, '')
   if (!clean) return null
-  const normalized = clean.includes(',') ? clean.replace(/\./g, '').replace(',', '.') : clean
+  let normalized: string
+  if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(clean)) {
+    // Puntos de miles, con o sin decimales tras la coma.
+    normalized = clean.replace(/\./g, '').replace(',', '.')
+  } else if (/^\d+(,\d{1,2})?$/.test(clean)) {
+    normalized = clean.replace(',', '.')
+  } else if (/^\d+\.\d{1,2}$/.test(clean)) {
+    normalized = clean
+  } else {
+    return null
+  }
   const n = Number(normalized)
   if (!Number.isFinite(n) || n <= 0) return null
   return Math.round(n * 100)

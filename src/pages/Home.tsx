@@ -4,7 +4,7 @@ import { computeAlerts, type Alert } from '../lib/alerts'
 import { dateTimeMs, formatDayLong, formatRelativeDay, msToISODate } from '../lib/dates'
 import { useNow } from '../lib/hooks'
 import { newId } from '../lib/labels'
-import { dosesForDay, formatAmount, isOverdue } from '../lib/medication'
+import { dosesForDay, formatAmount, isOverdue, overdueDoses } from '../lib/medication'
 import { currentShift, slotInterval, upcomingCells } from '../lib/shifts'
 import { Icon } from '../components/Icon'
 import { MemberTag, Section } from '../components/ui'
@@ -36,9 +36,12 @@ export function Home() {
     : []
 
   const doses = dosesForDay(data.medications, data.doseLogs, today)
-  const given = doses.filter((d) => d.log).length
+  const given = doses.filter((d) => d.log?.status === 'given').length
+  const skipped = doses.filter((d) => d.log?.status === 'skipped').length
   const pending = doses.filter((d) => !d.log)
-  const nextDoses = pending.filter((d) => dateTimeMs(d.date, d.time) <= now + 3 * 3600_000).slice(0, 4)
+  // Tomas de anoche que nadie registró, y luego las de hoy de las próximas horas.
+  const lastNight = overdueDoses(data.medications, data.doseLogs, now).filter((d) => d.date !== today)
+  const nextDoses = [...lastNight, ...pending.filter((d) => dateTimeMs(d.date, d.time) <= now + 3 * 3600_000)].slice(0, 4)
 
   const appointments = data.appointments
     .filter((a) => a.status === 'scheduled' && dateTimeMs(a.date, a.time) > now - 3600_000)
@@ -53,7 +56,7 @@ export function Home() {
 
   const take = (shiftId: string) => {
     const sh = data.shifts.find((s) => s.id === shiftId)
-    if (sh && me) upsert('shifts', { ...sh, memberId: me.id, coverRequested: false, note: '' })
+    if (sh && me) upsert('shifts', { ...sh, memberId: me.id, coverRequested: false, note: '', seriesId: null })
   }
   const accompany = (appointmentId: string) => {
     const a = data.appointments.find((x) => x.id === appointmentId)
@@ -62,10 +65,11 @@ export function Home() {
   const takeCurrent = () => {
     if (!current || !me) return
     upsert('shifts', {
-      ...(current.shift ?? { id: newId(), date: current.date, slotId: current.slot.id, seriesId: null }),
+      ...(current.shift ?? { id: newId(), date: current.date, slotId: current.slot.id }),
       memberId: me.id,
       note: '',
       coverRequested: false,
+      seriesId: null,
     })
   }
 
@@ -166,24 +170,35 @@ export function Home() {
           }
         >
           <div className="ap-card p-4">
-            {doses.length === 0 ? (
+            {doses.length === 0 && lastNight.length === 0 ? (
               <p className="text-[15px] text-[color:var(--ap-ink-3)]">No hay tomas programadas hoy.</p>
             ) : (
               <>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-[15px]">
-                    <strong>{given}</strong> de {doses.length} tomas registradas
-                  </span>
-                  {pending.length === 0 && <span style={{ color: 'var(--win)' }}>✓ Todo dado</span>}
-                </div>
-                <div className="mt-2 h-2 rounded-full" style={{ backgroundColor: 'var(--ap-hairline-soft)' }}>
-                  <div className="h-2 rounded-full" style={{ width: `${(given / doses.length) * 100}%`, backgroundColor: 'var(--win)' }} />
-                </div>
+                {doses.length > 0 && (
+                  <>
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                      <span className="text-[15px]">
+                        <strong>{given}</strong> de {doses.length} tomas dadas
+                        {skipped > 0 && (
+                          <span style={{ color: 'var(--loss)' }}>
+                            {' '}
+                            · {skipped} {skipped === 1 ? 'no tomada' : 'no tomadas'}
+                          </span>
+                        )}
+                      </span>
+                      {given === doses.length && <span style={{ color: 'var(--win)' }}>✓ Todo dado</span>}
+                    </div>
+                    <div className="mt-2 h-2 rounded-full" style={{ backgroundColor: 'var(--ap-hairline-soft)' }}>
+                      <div className="h-2 rounded-full" style={{ width: `${(given / doses.length) * 100}%`, backgroundColor: 'var(--win)' }} />
+                    </div>
+                  </>
+                )}
                 {nextDoses.length > 0 && (
                   <ul className="mt-3 space-y-1.5">
                     {nextDoses.map((d) => (
-                      <li key={d.med.id + d.time} className="flex items-center gap-2 text-[15px]">
-                        <span className="w-12 font-medium" style={{ color: isOverdue(d, now) ? 'var(--loss)' : undefined }}>
+                      <li key={d.date + d.med.id + d.time} className="flex items-center gap-2 text-[15px]">
+                        <span className="min-w-[3rem] shrink-0 font-medium" style={{ color: isOverdue(d, now) ? 'var(--loss)' : undefined }}>
+                          {d.date !== today && 'anoche '}
                           {d.time}
                         </span>
                         <span className="min-w-0 flex-1 truncate">

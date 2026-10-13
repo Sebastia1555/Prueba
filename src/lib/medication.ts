@@ -14,6 +14,16 @@ export const MED_FORMS = [
   'aplicación',
 ]
 
+/** El tratamiento ya terminó (tenía fecha de fin y ya ha pasado). */
+export function isFinished(med: Medication, today: string): boolean {
+  return !!med.endDate && med.endDate < today
+}
+
+/** El tratamiento aún no ha empezado. */
+export function isUpcoming(med: Medication, today: string): boolean {
+  return med.startDate > today
+}
+
 /** ¿Toca tomarlo ese día según la pauta? */
 export function isScheduledOn(med: Medication, date: string): boolean {
   if (!med.active || med.asNeeded) return false
@@ -40,15 +50,22 @@ export function dosesForDay(meds: Medication[], logs: DoseLog[], date: string): 
   const out: ScheduledDose[] = []
   for (const med of meds) {
     if (!isScheduledOn(med, date)) continue
-    for (const d of med.doses) {
-      out.push({
-        med,
-        date,
-        time: d.time,
-        amount: d.amount,
-        log: dayLogs.find((l) => l.medicationId === med.id && l.time === d.time),
-      })
-    }
+    const doses = [...med.doses].sort((a, b) => a.time.localeCompare(b.time))
+    const medLogs = dayLogs.filter((l) => l.medicationId === med.id).sort((a, b) => a.time.localeCompare(b.time))
+    const used = new Set<string>()
+    const matched = doses.map((d) => {
+      const log = medLogs.find((l) => l.time === d.time && !used.has(l.id))
+      if (log) used.add(log.id)
+      return log
+    })
+    // Registros cuya hora ya no está en la pauta (la toma se cambió de hora
+    // después): se asignan por orden a las tomas que quedan sin registrar,
+    // para no ofrecer dar otra vez algo que ya se dio.
+    const leftovers = medLogs.filter((l) => !used.has(l.id))
+    doses.forEach((d, i) => {
+      if (!matched[i] && leftovers.length) matched[i] = leftovers.shift()
+      out.push({ med, date, time: d.time, amount: d.amount, log: matched[i] })
+    })
   }
   return out.sort((a, b) => a.time.localeCompare(b.time) || a.med.name.localeCompare(b.med.name))
 }
@@ -58,6 +75,20 @@ export const OVERDUE_MINUTES = 60
 
 export function isOverdue(dose: ScheduledDose, now = Date.now()): boolean {
   return !dose.log && dateTimeMs(dose.date, dose.time) + OVERDUE_MINUTES * 60_000 < now
+}
+
+/** Hasta cuántas horas después se sigue avisando de una toma de ayer sin registrar. */
+const OVERDUE_LOOKBACK_HOURS = 12
+
+/**
+ * Tomas atrasadas sin registrar: las de hoy y las de anoche (así una toma de
+ * las 23:00 olvidada sigue avisando pasada la medianoche).
+ */
+export function overdueDoses(meds: Medication[], logs: DoseLog[], now = Date.now()): ScheduledDose[] {
+  const today = msToISODate(now)
+  const since = now - OVERDUE_LOOKBACK_HOURS * 3600_000
+  const lastNight = dosesForDay(meds, logs, addDays(today, -1)).filter((d) => dateTimeMs(d.date, d.time) > since)
+  return [...lastNight, ...dosesForDay(meds, logs, today)].filter((d) => isOverdue(d, now))
 }
 
 export function unitsPerDay(med: Medication): number {
@@ -87,17 +118,18 @@ export function stockStatus(med: Medication, logs: DoseLog[], now = Date.now()):
       .reduce((s, l) => s + l.amount, 0)
     remaining = med.stockUnits - used
   } else {
-    // Consumo estimado según la pauta desde el último recuento.
+    // Consumo estimado según la pauta desde el último recuento (solo los días
+    // en que el tratamiento estaba en marcha).
     let used = 0
-    const from = msToISODate(med.stockCountedAt)
-    const to = msToISODate(now)
-    if (diffDays(from, to) <= HORIZON_DAYS) {
-      for (let d = from; d <= to; d = addDays(d, 1)) {
-        if (!isScheduledOn(med, d)) continue
-        for (const dose of med.doses) {
-          const t = dateTimeMs(d, dose.time)
-          if (t > med.stockCountedAt && t <= now) used += dose.amount
-        }
+    const countedDay = msToISODate(med.stockCountedAt)
+    const from = countedDay > med.startDate ? countedDay : med.startDate
+    const today = msToISODate(now)
+    const to = med.endDate && med.endDate < today ? med.endDate : today
+    for (let d = from; d <= to; d = addDays(d, 1)) {
+      if (!isScheduledOn(med, d)) continue
+      for (const dose of med.doses) {
+        const t = dateTimeMs(d, dose.time)
+        if (t > med.stockCountedAt && t <= now) used += dose.amount
       }
     }
     remaining = med.stockUnits - used

@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Modal } from '../components/Modal'
 import { Icon } from '../components/Icon'
 import { Avatar, Badge, Field, Notice, PageHeader } from '../components/ui'
+import { IS_PREVIEW } from '../lib/env'
 
 export function Family() {
   const { data, me, can, setMeId } = useData()
@@ -42,7 +43,7 @@ export function Family() {
                 {[m.relation, m.phone, m.email].filter(Boolean).join(' · ')}
               </div>
             </div>
-            {m.phone && (
+            {m.phone && !IS_PREVIEW && (
               <a href={`tel:${m.phone.replace(/\s/g, '')}`} className="rounded-full p-2 text-[color:var(--ap-blue)] hover:bg-black/5" aria-label={`Llamar a ${m.name}`}>
                 <Icon name="phone" size={18} />
               </a>

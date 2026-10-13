@@ -1,5 +1,5 @@
 import type { AppData, Patient } from '../types'
-import { clearAll, getFile, saveData, saveFile } from './db'
+import { deleteFile, deleteFilesExcept, getFile, keepFilesInMemory, listFileIds, saveData, saveFile } from './db'
 import { newId } from './labels'
 import { DEFAULT_SLOTS } from './shifts'
 
@@ -93,7 +93,7 @@ export async function exportBackup(data: AppData): Promise<Blob> {
 }
 
 /** Sustituye todos los datos de este dispositivo por los de la copia. */
-export async function importBackup(file: Blob): Promise<AppData> {
+export async function importBackup(file: Blob): Promise<{ data: AppData; persisted: boolean }> {
   let parsed: BackupFile
   try {
     parsed = JSON.parse(await file.text()) as BackupFile
@@ -105,23 +105,42 @@ export async function importBackup(file: Blob): Promise<AppData> {
   }
   const data = normalizeData(parsed.data)
   const files: Record<string, Blob> = {}
-  for (const [id, f] of Object.entries(parsed.files ?? {})) files[id] = base64ToBlob(f.base64, f.type)
-  await replaceAllData(data, files)
-  return data
+  try {
+    for (const [id, f] of Object.entries(parsed.files ?? {})) files[id] = base64ToBlob(f.base64, f.type)
+  } catch {
+    throw new Error('La copia de seguridad está dañada: algún documento no se puede leer.')
+  }
+  const outcome = await replaceAllData(data, files)
+  if (outcome === 'failed') {
+    throw new Error('No hay espacio suficiente en este dispositivo para restaurar la copia. No se ha cambiado nada.')
+  }
+  return { data, persisted: outcome === 'stored' }
 }
 
 /**
- * Guarda los datos y archivos indicados sustituyendo lo que hubiera.
- * Devuelve `false` si no se han podido guardar de forma permanente (los
- * archivos quedan en memoria y la app sigue funcionando en esta sesión).
+ * Sustituye todos los datos y archivos. Primero escribe lo nuevo y solo
+ * después borra lo antiguo, así que si algo falla no se pierde nada.
+ * - `'stored'`: guardado de forma permanente.
+ * - `'memory'`: este navegador no deja guardar; solo vale para esta sesión.
+ * - `'failed'`: no se ha podido escribir (p. ej. sin espacio); no ha cambiado nada.
  */
-export async function replaceAllData(data: AppData, files: Record<string, Blob> = {}): Promise<boolean> {
-  await clearAll()
-  for (const [id, blob] of Object.entries(files)) await saveFile(id, blob)
+export async function replaceAllData(data: AppData, files: Record<string, Blob> = {}): Promise<'stored' | 'memory' | 'failed'> {
+  const existing = await listFileIds()
+  const written: string[] = []
   try {
+    for (const [id, blob] of Object.entries(files)) {
+      if ((await saveFile(id, blob)) === 'memory') {
+        keepFilesInMemory(files)
+        return 'memory'
+      }
+      written.push(id)
+    }
     await saveData(data)
-    return true
   } catch {
-    return false
+    // No dejar a medias los archivos nuevos que no estaban antes.
+    for (const id of written) if (!existing.has(id)) await deleteFile(id).catch(() => undefined)
+    return 'failed'
   }
+  await deleteFilesExcept(new Set(Object.keys(files)))
+  return 'stored'
 }

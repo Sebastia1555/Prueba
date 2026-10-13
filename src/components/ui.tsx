@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { Member } from '../types'
 import { initials } from '../lib/labels'
 import { WEEKDAYS } from '../lib/dates'
+import { IS_PREVIEW } from '../lib/env'
 import { Icon, type IconName } from './Icon'
 
 export function Avatar({ member, size = 32 }: { member: Member | undefined; size?: number }) {
@@ -286,5 +287,20 @@ export function NumberInput({
       }}
       onBlur={() => setText(fmt(value))}
     />
+  )
+}
+
+/**
+ * Teléfono que se puede pulsar para llamar. En la vista previa los enlaces
+ * tel: no funcionan, así que se muestra como texto seleccionable.
+ */
+export function PhoneLink({ phone, className = '', children }: { phone: string; className?: string; children?: ReactNode }) {
+  if (IS_PREVIEW) {
+    return <span className="inline-flex select-all items-center gap-1.5 text-[15px] font-medium">{children ?? phone}</span>
+  }
+  return (
+    <a href={`tel:${phone.replace(/\s/g, '')}`} className={className}>
+      {children ?? phone}
+    </a>
   )
 }

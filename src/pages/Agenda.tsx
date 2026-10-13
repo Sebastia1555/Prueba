@@ -61,10 +61,12 @@ export function Agenda() {
     if (!me) return
     const existing = data.shifts.find((s) => s.date === date && s.slotId === slot.id)
     upsert('shifts', {
-      ...(existing ?? { id: newId(), date, slotId: slot.id, seriesId: null }),
+      ...(existing ?? { id: newId(), date, slotId: slot.id }),
       memberId: me.id,
       note: '',
       coverRequested: false,
+      // Quien cubre un turno suelto no pasa a formar parte de la serie de otro.
+      seriesId: null,
     })
   }
 

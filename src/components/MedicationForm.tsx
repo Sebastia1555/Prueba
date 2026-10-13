@@ -3,7 +3,7 @@ import type { DoseTime, Medication } from '../types'
 import { useData } from '../context/DataContext'
 import { todayISO } from '../lib/dates'
 import { newId } from '../lib/labels'
-import { MED_FORMS } from '../lib/medication'
+import { MED_FORMS, stockStatus } from '../lib/medication'
 import { Modal } from './Modal'
 import { ConfirmDialog } from './ConfirmDialog'
 import { Checkbox, Field, NumberInput, Segmented, WeekdayPicker } from './ui'
@@ -41,10 +41,17 @@ const num = (v: string, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback
 }
 
+const SUGGESTED_TIMES = ['09:00', '21:00', '14:00', '12:00', '18:00', '23:00', '06:00']
+
 export function MedicationForm({ medication, onClose }: { medication?: Medication; onClose: () => void }) {
-  const { upsert, remove } = useData()
+  const { data, upsert, remove } = useData()
   const [m, setM] = useState<Medication>(() => medication ?? blankMedication())
-  const [stockText, setStockText] = useState(String(medication?.stockUnits ?? 28))
+  // Lo que queda HOY según la pauta actual: al guardar se toma como nuevo
+  // recuento, para que un cambio de pauta no recalcule el consumo pasado.
+  const [estimate] = useState(() => (medication ? stockStatus(medication, data.doseLogs).remaining : 28))
+  const [stockText, setStockText] = useState(() => String(estimate).replace('.', ','))
+  // Clave estable por fila para que borrar una toma no mezcle las cantidades.
+  const [rowIds, setRowIds] = useState(() => m.doses.map(() => newId()))
   const [confirmDelete, setConfirmDelete] = useState(false)
   const set = <K extends keyof Medication>(key: K, value: Medication[K]) => setM((prev) => ({ ...prev, [key]: value }))
 
@@ -53,19 +60,32 @@ export function MedicationForm({ medication, onClose }: { medication?: Medicatio
       'doses',
       m.doses.map((d, idx) => (idx === i ? { ...d, ...patch } : d)),
     )
+  const addDose = () => {
+    const used = new Set(m.doses.map((d) => d.time))
+    set('doses', [...m.doses, { time: SUGGESTED_TIMES.find((t) => !used.has(t)) ?? '20:00', amount: 1 }])
+    setRowIds([...rowIds, newId()])
+  }
+  const removeDose = (i: number) => {
+    set('doses', m.doses.filter((_, idx) => idx !== i))
+    setRowIds(rowIds.filter((_, idx) => idx !== i))
+  }
 
-  const valid = m.name.trim() && (m.asNeeded || (m.doses.length > 0 && m.doses.every((d) => d.time && d.amount > 0)))
+  const duplicateTimes = new Set(m.doses.map((d) => d.time)).size !== m.doses.length
+  const valid =
+    m.name.trim() &&
+    m.startDate &&
+    (!m.endDate || m.endDate >= m.startDate) &&
+    (m.asNeeded || (m.doses.length > 0 && !duplicateTimes && m.doses.every((d) => d.time && d.amount > 0)))
 
   const save = () => {
     if (!valid) return
-    const stock = num(stockText, m.stockUnits)
-    const stockChanged = !medication || stock !== medication.stockUnits
+    const stock = stockText.trim() === '' ? estimate : Math.max(0, num(stockText, estimate))
     upsert('medications', {
       ...m,
       name: m.name.trim(),
       doses: [...m.doses].sort((a, b) => a.time.localeCompare(b.time)),
       stockUnits: stock,
-      stockCountedAt: stockChanged ? Date.now() : m.stockCountedAt,
+      stockCountedAt: Date.now(),
     })
     onClose()
   }
@@ -113,7 +133,7 @@ export function MedicationForm({ medication, onClose }: { medication?: Medicatio
                 <span className="ap-label">Tomas al día</span>
                 <div className="space-y-2">
                   {m.doses.map((d, i) => (
-                    <div key={i} className="flex items-center gap-2">
+                    <div key={rowIds[i]} className="flex items-center gap-2">
                       <input
                         type="time"
                         className="ap-input !w-[7.5rem] shrink-0"
@@ -131,7 +151,7 @@ export function MedicationForm({ medication, onClose }: { medication?: Medicatio
                       <button
                         type="button"
                         className="ml-auto shrink-0 rounded-full p-2 text-[color:var(--ap-ink-3)] hover:bg-black/5"
-                        onClick={() => set('doses', m.doses.filter((_, idx) => idx !== i))}
+                        onClick={() => removeDose(i)}
                         aria-label="Quitar toma"
                       >
                         <Icon name="x" size={18} />
@@ -139,11 +159,12 @@ export function MedicationForm({ medication, onClose }: { medication?: Medicatio
                     </div>
                   ))}
                 </div>
-                <button
-                  type="button"
-                  className="ap-btn ap-btn-sm ap-btn-quiet mt-2"
-                  onClick={() => set('doses', [...m.doses, { time: '21:00', amount: 1 }])}
-                >
+                {duplicateTimes && (
+                  <p className="mt-1 text-[13px]" style={{ color: 'var(--loss)' }}>
+                    Hay dos tomas a la misma hora: júntalas en una con la cantidad total.
+                  </p>
+                )}
+                <button type="button" className="ap-btn ap-btn-sm ap-btn-quiet mt-2" onClick={addDose}>
                   <Icon name="plus" size={16} /> Añadir toma
                 </button>
                 <p className="mt-1 text-[13px] text-[color:var(--ap-ink-3)]">Usa 0,5 para medio comprimido.</p>
@@ -195,7 +216,7 @@ export function MedicationForm({ medication, onClose }: { medication?: Medicatio
         <fieldset className="rounded-[14px] border p-4" style={{ borderColor: 'var(--ap-hairline-soft)' }}>
           <legend className="px-1 text-[15px] font-semibold">Stock y receta</legend>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Quedan ahora" hint="Unidades en casa">
+            <Field label="Quedan ahora" hint={medication ? 'Calculado con la pauta: corrígelo si no cuadra' : 'Unidades en casa'}>
               <input inputMode="decimal" className="ap-input" value={stockText} onChange={(e) => setStockText(e.target.value)} />
             </Field>
             <Field label="Unidades por caja">

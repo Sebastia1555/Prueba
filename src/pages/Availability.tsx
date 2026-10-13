@@ -252,7 +252,12 @@ function CalendarsSection({ memberId, calendars }: { memberId: string; calendars
   const [help, setHelp] = useState(false)
 
   const store = (name: string, text: string, sourceUrl: string, existing?: CalendarSource) => {
-    const events = parseIcs(text)
+    let events: CalendarSource['events']
+    try {
+      events = parseIcs(text)
+    } catch {
+      throw new Error('No se ha podido leer el calendario: el archivo parece dañado o incompleto.')
+    }
     upsert('calendars', {
       id: existing?.id ?? newId(),
       memberId,
@@ -262,7 +267,12 @@ function CalendarsSection({ memberId, calendars }: { memberId: string; calendars
       private: existing?.private ?? true,
       events,
     })
-    setInfo(`${events.length} ${events.length === 1 ? 'evento importado' : 'eventos importados'} (del último año y el próximo).`)
+    const n = events.length
+    setInfo(
+      existing
+        ? `Calendario actualizado: ${n} ${n === 1 ? 'evento' : 'eventos'} entre la semana pasada y el próximo año.`
+        : `${n} ${n === 1 ? 'evento importado' : 'eventos importados'} entre la semana pasada y el próximo año.`,
+    )
   }
 
   const run = async (fn: () => Promise<void>) => {
@@ -282,7 +292,10 @@ function CalendarsSection({ memberId, calendars }: { memberId: string; calendars
     run(async () => {
       const text = await file.text()
       if (!text.includes('BEGIN:VCALENDAR')) throw new Error('El archivo no es un calendario .ics.')
-      store(file.name.replace(/\.ics$/i, ''), text, '')
+      const name = file.name.replace(/\.ics$/i, '')
+      // Volver a importar el mismo archivo lo actualiza en vez de duplicarlo.
+      const previous = calendars.find((c) => !c.url && c.name === name)
+      store(name, text, '', previous)
     })
 
   const importUrl = () =>

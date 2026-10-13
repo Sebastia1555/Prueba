@@ -9,6 +9,7 @@ import { ROLE_LABELS } from './lib/permissions'
 import { Icon } from './components/Icon'
 import { Modal } from './components/Modal'
 import { Avatar } from './components/ui'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { Home } from './pages/Home'
 import { Agenda } from './pages/Agenda'
 import { Availability } from './pages/Availability'
@@ -222,8 +223,34 @@ function SampleBanner() {
   )
 }
 
+/** Pantallas, aisladas para que un fallo en una no deje la app en blanco. */
+function RoutedContent() {
+  const { pathname } = useLocation()
+  return (
+    <ErrorBoundary resetKey={pathname}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/agenda" element={<Agenda />} />
+        <Route path="/disponibilidad" element={<Availability />} />
+        <Route path="/medicacion" element={<Medications />} />
+        <Route path="/medicacion/imprimir" element={<MedicationSheet />} />
+        <Route path="/citas" element={<Appointments />} />
+        <Route path="/citas/:id" element={<AppointmentDetail />} />
+        <Route path="/documentos" element={<DocumentsPage />} />
+        <Route path="/diario" element={<Diary />} />
+        <Route path="/gastos" element={<Expenses />} />
+        <Route path="/ficha" element={<EmergencyCard />} />
+        <Route path="/familia" element={<Family />} />
+        <Route path="/ajustes" element={<Settings />} />
+        <Route path="/mas" element={<More />} />
+        <Route path="*" element={<Home />} />
+      </Routes>
+    </ErrorBoundary>
+  )
+}
+
 function Shell() {
-  const { data, ready, me, storageError } = useData()
+  const { data, ready, me, storageError, storageLocked } = useData()
   useCalendarAutoRefresh()
 
   if (!ready) {
@@ -240,27 +267,13 @@ function Shell() {
         <SampleBanner />
         {storageError && (
           <div className="no-print px-4 py-2 text-center text-[14px]" style={{ backgroundColor: 'var(--loss-bg)', color: 'var(--loss)' }}>
-            No se están pudiendo guardar los datos en este navegador (¿modo privado o sin espacio?).
+            {storageLocked
+              ? 'No se han podido leer los datos guardados en este navegador. Para no estropearlos, no se guardará nada hasta que recargues la página.'
+              : 'No se están pudiendo guardar los datos en este navegador (¿modo privado o sin espacio?).'}
           </div>
         )}
         <main className="mx-auto max-w-5xl px-4 pt-5 pb-28 lg:pb-12">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/agenda" element={<Agenda />} />
-            <Route path="/disponibilidad" element={<Availability />} />
-            <Route path="/medicacion" element={<Medications />} />
-            <Route path="/medicacion/imprimir" element={<MedicationSheet />} />
-            <Route path="/citas" element={<Appointments />} />
-            <Route path="/citas/:id" element={<AppointmentDetail />} />
-            <Route path="/documentos" element={<DocumentsPage />} />
-            <Route path="/diario" element={<Diary />} />
-            <Route path="/gastos" element={<Expenses />} />
-            <Route path="/ficha" element={<EmergencyCard />} />
-            <Route path="/familia" element={<Family />} />
-            <Route path="/ajustes" element={<Settings />} />
-            <Route path="/mas" element={<More />} />
-            <Route path="*" element={<Home />} />
-          </Routes>
+          <RoutedContent />
         </main>
         <BottomNav />
       </div>

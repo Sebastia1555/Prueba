@@ -9,6 +9,8 @@ import { Modal } from '../components/Modal'
 import { Icon } from '../components/Icon'
 import { Avatar, Checkbox, EmptyState, Field, Notice, PageHeader, Section } from '../components/ui'
 
+const FORMER_MEMBER = 'Antiguo miembro'
+
 export function Expenses() {
   const { data, can, memberById, upsert } = useData()
   const [editing, setEditing] = useState<Expense | 'new' | null>(null)
@@ -30,7 +32,14 @@ export function Expenses() {
     return <Notice icon="lock">Tu rol no tiene acceso a los gastos.</Notice>
   }
 
-  const involved = data.members.filter((m) => bal.has(m.id) || m.role !== 'cuidador')
+  // Quien ya no está en la familia sigue apareciendo mientras tenga saldo pendiente.
+  const nameOf = (id: string) => memberById(id)?.name ?? FORMER_MEMBER
+  const involved = [
+    ...data.members.filter((m) => bal.has(m.id) || m.role !== 'cuidador').map((m) => ({ id: m.id, member: m })),
+    ...[...bal]
+      .filter(([id, v]) => v !== 0 && !memberById(id))
+      .map(([id]) => ({ id, member: undefined })),
+  ]
   const settlements = [...data.settlements].sort((a, b) => b.date.localeCompare(a.date))
 
   return (
@@ -50,12 +59,12 @@ export function Expenses() {
       <div className="grid gap-4 md:grid-cols-2">
         <Section title="Saldos">
           <ul className="ap-card divide-y overflow-hidden">
-            {involved.map((m) => {
-              const v = bal.get(m.id) ?? 0
+            {involved.map(({ id, member }) => {
+              const v = bal.get(id) ?? 0
               return (
-                <li key={m.id} className="flex items-center gap-3 px-4 py-3" style={{ borderColor: 'var(--ap-hairline-soft)' }}>
-                  <Avatar member={m} size={30} />
-                  <span className="flex-1 text-[16px]">{m.name}</span>
+                <li key={id} className="flex items-center gap-3 px-4 py-3" style={{ borderColor: 'var(--ap-hairline-soft)' }}>
+                  <Avatar member={member} size={30} />
+                  <span className="flex-1 text-[16px]">{member?.name ?? FORMER_MEMBER}</span>
                   <span
                     className="text-[16px] font-semibold"
                     style={{ color: v > 0 ? 'var(--win)' : v < 0 ? 'var(--loss)' : 'var(--ap-ink-3)' }}
@@ -78,7 +87,7 @@ export function Expenses() {
               {transfers.map((t) => (
                 <li key={t.fromId + t.toId} className="flex flex-wrap items-center gap-2 px-4 py-3" style={{ borderColor: 'var(--ap-hairline-soft)' }}>
                   <span className="flex-1 text-[15px]">
-                    <strong>{memberById(t.fromId)?.name ?? 'Antiguo miembro'}</strong> paga a <strong>{memberById(t.toId)?.name ?? 'Antiguo miembro'}</strong>
+                    <strong>{nameOf(t.fromId)}</strong> paga a <strong>{nameOf(t.toId)}</strong>
                   </span>
                   <span className="text-[16px] font-semibold">{formatMoney(t.amountCents)}</span>
                   {can('editExpenses') && (
@@ -121,7 +130,7 @@ export function Expenses() {
                           <div className="min-w-0 flex-1">
                             <div className="truncate text-[15px] font-medium">{e.concept}</div>
                             <div className="text-[13px] text-[color:var(--ap-ink-3)]">
-                              {formatDate(e.date)} · pagó {memberById(e.paidById)?.name ?? '—'} · entre {e.splitAmong.length}
+                              {formatDate(e.date)} · pagó {nameOf(e.paidById)} · entre {e.splitAmong.length}
                             </div>
                           </div>
                           <span className="text-[15px] font-semibold">{formatMoney(e.amountCents)}</span>
@@ -142,7 +151,7 @@ export function Expenses() {
             {settlements.map((s) => (
               <li key={s.id} className="flex items-center gap-3 px-4 py-2.5 text-[15px]" style={{ borderColor: 'var(--ap-hairline-soft)' }}>
                 <span className="flex-1">
-                  {memberById(s.fromId)?.name} → {memberById(s.toId)?.name}
+                  {nameOf(s.fromId)} → {nameOf(s.toId)}
                   <span className="text-[13px] text-[color:var(--ap-ink-3)]">
                     {' '}· {formatDate(s.date)}
                     {s.note && ` · ${s.note}`}
@@ -161,7 +170,7 @@ export function Expenses() {
         title="Registrar pago"
         message={
           settling
-            ? `¿${memberById(settling.fromId)?.name} ha pagado ${formatMoney(settling.amountCents)} a ${memberById(settling.toId)?.name}?`
+            ? `¿${nameOf(settling.fromId)} ha pagado ${formatMoney(settling.amountCents)} a ${nameOf(settling.toId)}?`
             : ''
         }
         confirmLabel="Sí, registrar"
@@ -196,7 +205,7 @@ function ExpenseForm({ expense, onClose }: { expense?: Expense; onClose: () => v
   const [notes, setNotes] = useState(expense?.notes ?? '')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const cents = parseMoney(amount)
-  const valid = concept.trim() && cents && paidById && split.length > 0
+  const valid = concept.trim() && cents && date && paidById && split.length > 0
 
   const save = () => {
     if (!valid || !cents) return
@@ -223,6 +232,11 @@ function ExpenseForm({ expense, onClose }: { expense?: Expense; onClose: () => v
         <div className="grid grid-cols-2 gap-3">
           <Field label="Importe">
             <input inputMode="decimal" className="ap-input" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00 €" />
+            {amount.trim() && !cents && (
+              <span className="mt-1 block text-[13px]" style={{ color: 'var(--loss)' }}>
+                Escríbelo así: 1.250,50
+              </span>
+            )}
           </Field>
           <Field label="Fecha">
             <input type="date" className="ap-input" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -238,6 +252,11 @@ function ExpenseForm({ expense, onClose }: { expense?: Expense; onClose: () => v
           </Field>
           <Field label="Pagó">
             <select className="ap-input" value={paidById} onChange={(e) => setPaidById(e.target.value)}>
+              {paidById && !data.members.some((m) => m.id === paidById) && (
+                <option value={paidById} disabled>
+                  {FORMER_MEMBER}
+                </option>
+              )}
               {data.members.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}

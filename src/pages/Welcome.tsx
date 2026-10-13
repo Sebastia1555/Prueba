@@ -42,8 +42,8 @@ export function Welcome() {
 
   const sample = async () => {
     const { data, files } = buildSampleData()
-    await replaceAllData(data, files)
-    replaceData(data)
+    const outcome = await replaceAllData(data, files)
+    replaceData(data, outcome === 'stored')
     setMeId(data.members[0].id)
   }
 

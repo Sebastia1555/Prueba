@@ -10,7 +10,7 @@ import { AppointmentForm } from '../components/AppointmentForm'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { DocumentList, DocumentUploadButton } from '../components/Documents'
 import { Icon } from '../components/Icon'
-import { Badge, EmptyState, MemberTag, Notice, Section } from '../components/ui'
+import { Badge, EmptyState, MemberTag, Notice, PhoneLink, Section } from '../components/ui'
 
 export function AppointmentDetail() {
   const { id } = useParams()
@@ -98,14 +98,16 @@ export function AppointmentDetail() {
               <div>
                 <div className="font-medium">{a.place}</div>
                 {a.address && <div className="text-[color:var(--ap-ink-2)]">{a.address}</div>}
-                <a
-                  className="ap-link text-[14px]"
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([a.place, a.address].filter(Boolean).join(', '))}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Ver en el mapa
-                </a>
+                {!IS_PREVIEW && (
+                  <a
+                    className="ap-link text-[14px]"
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([a.place, a.address].filter(Boolean).join(', '))}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Ver en el mapa
+                  </a>
+                )}
               </div>
             </div>
           )}
@@ -130,9 +132,7 @@ export function AppointmentDetail() {
             <div className="flex flex-wrap items-center gap-2">
               <MemberTag member={companion} suffix={companion.id === me?.id ? ' (tú)' : ''} />
               {companion.phone && (
-                <a href={`tel:${companion.phone.replace(/\s/g, '')}`} className="ap-link text-[14px]">
-                  {companion.phone}
-                </a>
+                <PhoneLink phone={companion.phone} className="ap-link text-[14px]" />
               )}
             </div>
           ) : (

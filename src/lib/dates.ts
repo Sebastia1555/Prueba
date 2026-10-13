@@ -130,29 +130,36 @@ const fmtMonth = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeri
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
+/** Formatea una fecha 'YYYY-MM-DD'; si no es válida devuelve '' en vez de lanzar un error. */
+function safeFormat(fmt: Intl.DateTimeFormat, iso: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return ''
+  const d = parseISODate(iso)
+  return Number.isNaN(d.getTime()) ? '' : fmt.format(d)
+}
+
 /** "Jueves, 9 de octubre" */
 export function formatDayLong(iso: string): string {
-  return capitalize(fmtLong.format(parseISODate(iso)))
+  return capitalize(safeFormat(fmtLong, iso))
 }
 
 /** "jue, 9 oct" */
 export function formatDayMedium(iso: string): string {
-  return fmtMedium.format(parseISODate(iso))
+  return safeFormat(fmtMedium, iso)
 }
 
 /** "9 oct" */
 export function formatDayShort(iso: string): string {
-  return fmtShort.format(parseISODate(iso))
+  return safeFormat(fmtShort, iso)
 }
 
 /** "9 oct 2026" */
 export function formatDate(iso: string): string {
-  return iso ? fmtFull.format(parseISODate(iso)) : ''
+  return safeFormat(fmtFull, iso)
 }
 
 /** "Octubre 2026" */
 export function formatMonth(iso: string): string {
-  return capitalize(fmtMonth.format(parseISODate(iso)))
+  return capitalize(safeFormat(fmtMonth, iso))
 }
 
 /** "Hoy", "Mañana", "Ayer" o "jue, 9 oct". */
