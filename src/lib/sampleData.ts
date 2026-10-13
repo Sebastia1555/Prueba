@@ -63,6 +63,7 @@ export function buildSampleData(): { data: AppData; files: Record<string, Blob> 
     return w === 6 ? addDays(date, 2) : w === 7 ? addDays(date, 1) : date
   }
   const data = emptyData()
+  data.sample = true
   const files: Record<string, Blob> = {}
 
   data.patient = {

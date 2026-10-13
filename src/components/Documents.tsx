@@ -3,9 +3,12 @@ import type { DocCategory, DocumentMeta } from '../types'
 import { useData } from '../context/DataContext'
 import { getFile, saveFile } from '../lib/db'
 import { formatDate, todayISO } from '../lib/dates'
-import { DOC_CATEGORIES, downloadBlob, formatFileSize, newId } from '../lib/labels'
+import { downloadMessage, offerDownload } from '../lib/download'
+import { IS_PREVIEW } from '../lib/env'
+import { DOC_CATEGORIES, formatFileSize, newId } from '../lib/labels'
 import { Modal } from './Modal'
 import { ConfirmDialog } from './ConfirmDialog'
+import { PdfViewer } from './PdfViewer'
 import { Icon } from './Icon'
 import { Field, Notice } from './ui'
 
@@ -227,6 +230,8 @@ function DocumentViewer({ doc, onClose }: { doc: DocumentMeta; onClose: () => vo
   const [title, setTitle] = useState(doc.title)
   const [category, setCategory] = useState(doc.category)
   const [notes, setNotes] = useState(doc.notes)
+  const [pdfFailed, setPdfFailed] = useState(false)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
 
   useEffect(() => {
     let objectUrl: string | null = null
@@ -264,7 +269,9 @@ function DocumentViewer({ doc, onClose }: { doc: DocumentMeta; onClose: () => vo
         <p className="py-10 text-center text-[color:var(--ap-ink-3)]">Cargando…</p>
       ) : isImage ? (
         <img src={url} alt={doc.title} className="mx-auto max-h-[60vh] rounded-[12px]" />
-      ) : isPdf ? (
+      ) : isPdf && blob && !pdfFailed ? (
+        <PdfViewer blob={blob} onError={() => setPdfFailed(true)} />
+      ) : isPdf && !IS_PREVIEW ? (
         <iframe src={url} title={doc.title} className="h-[60vh] w-full rounded-[12px] border" style={{ borderColor: 'var(--ap-hairline-soft)' }} />
       ) : (
         <p className="py-6 text-center text-[15px] text-[color:var(--ap-ink-2)]">Vista previa no disponible. Descárgalo para abrirlo.</p>
@@ -319,13 +326,17 @@ function DocumentViewer({ doc, onClose }: { doc: DocumentMeta; onClose: () => vo
             </button>
           ) : (
             <>
-              {url && (
+              {url && !IS_PREVIEW && (
                 <a href={url} target="_blank" rel="noreferrer" className="ap-btn ap-btn-sm ap-btn-neutral">
                   Abrir
                 </a>
               )}
               {blob && (
-                <button type="button" className="ap-btn ap-btn-sm ap-btn-primary" onClick={() => downloadBlob(blob, doc.fileName)}>
+                <button
+                  type="button"
+                  className="ap-btn ap-btn-sm ap-btn-primary"
+                  onClick={async () => setDownloadError(downloadMessage(await offerDownload(blob, doc.fileName)))}
+                >
                   <Icon name="download" size={16} /> Descargar
                 </button>
               )}
@@ -333,6 +344,12 @@ function DocumentViewer({ doc, onClose }: { doc: DocumentMeta; onClose: () => vo
           )}
         </div>
       </div>
+
+      {downloadError && (
+        <div className="mt-3">
+          <Notice tone="amber">{downloadError}</Notice>
+        </div>
+      )}
 
       <ConfirmDialog
         open={confirmDelete}

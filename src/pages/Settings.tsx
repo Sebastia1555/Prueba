@@ -3,7 +3,8 @@ import type { CareSlot } from '../types'
 import { useData } from '../context/DataContext'
 import { clearAll } from '../lib/db'
 import { formatHours, todayISO } from '../lib/dates'
-import { downloadBlob, formatFileSize, newId } from '../lib/labels'
+import { downloadMessage, offerDownload } from '../lib/download'
+import { formatFileSize, newId } from '../lib/labels'
 import { buildSampleData } from '../lib/sampleData'
 import { slotMinutes, sortSlots } from '../lib/shifts'
 import { emptyData, exportBackup, importBackup, replaceAllData } from '../lib/store'
@@ -153,7 +154,8 @@ function BackupSection() {
 
   const doExport = async () => {
     const blob = await exportBackup(data)
-    downloadBlob(blob, `cuidamos-copia-${todayISO()}.json`)
+    const problem = downloadMessage(await offerDownload(blob, `cuidamos-copia-${todayISO()}.json`))
+    if (problem) setMessage({ tone: 'red', text: problem })
   }
 
   const doImport = async (file: File) => {

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { HashRouter, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { HashRouter, MemoryRouter, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { DataProvider, useData } from './context/DataContext'
+import { dismiss, isDismissed } from './lib/db'
+import { IS_PREVIEW } from './lib/env'
 import { fetchIcs, parseIcs } from './lib/ics'
 import { MAIN_NAV, MORE_LINKS } from './lib/nav'
 import { ROLE_LABELS } from './lib/permissions'
@@ -22,23 +24,35 @@ import { Family } from './pages/Family'
 import { Settings } from './pages/Settings'
 import { More } from './pages/More'
 import { ProfilePicker, Welcome } from './pages/Welcome'
+import logo from './assets/logo.svg'
+
+// En la vista previa el visor no deja cambiar la URL de la página: la
+// navegación vive en memoria.
+const Router = IS_PREVIEW ? MemoryRouter : HashRouter
 
 const CALENDAR_REFRESH_MS = 6 * 3600_000
 
 /** Vuelve a descargar los calendarios enlazados que lleven horas sin actualizarse. */
 function useCalendarAutoRefresh() {
-  const { data, ready, upsert } = useData()
+  const { data, ready, update } = useData()
   const done = useRef(false)
   useEffect(() => {
-    if (!ready || done.current) return
+    if (!ready || done.current || IS_PREVIEW) return
     done.current = true
     for (const cal of data.calendars) {
       if (!cal.url || Date.now() - cal.importedAt < CALENDAR_REFRESH_MS) continue
       fetchIcs(cal.url)
-        .then((text) => upsert('calendars', { ...cal, events: parseIcs(text), importedAt: Date.now() }))
+        .then((text) => {
+          const events = parseIcs(text)
+          // Solo se sustituyen los eventos: lo demás puede haber cambiado mientras tanto.
+          update((d) => ({
+            ...d,
+            calendars: d.calendars.map((c) => (c.id === cal.id ? { ...c, events, importedAt: Date.now() } : c)),
+          }))
+        })
         .catch(() => undefined)
     }
-  }, [ready, data.calendars, upsert])
+  }, [ready, data.calendars, update])
 }
 
 function ScrollToTop() {
@@ -110,7 +124,9 @@ function Header() {
     <header
       className="no-print sticky top-0 z-40 border-b"
       style={{
-        paddingTop: 'env(safe-area-inset-top)',
+        // En la vista previa el visor ya reserva el hueco de la barra de estado.
+        top: IS_PREVIEW ? 'env(safe-area-inset-top, 0px)' : 0,
+        paddingTop: IS_PREVIEW ? 0 : 'env(safe-area-inset-top)',
         borderColor: 'var(--ap-hairline-soft)',
         backgroundColor: 'rgba(245, 245, 247, 0.85)',
         backdropFilter: 'saturate(180%) blur(20px)',
@@ -119,7 +135,7 @@ function Header() {
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
         <NavLink to="/" className="flex min-w-0 items-center gap-2">
-          <img src="favicon.svg" alt="" width={26} height={26} className="rounded-[7px]" />
+          <img src={logo} alt="" width={26} height={26} className="rounded-[7px]" />
           <span className="text-[19px] font-semibold tracking-[-0.02em]">Cuidamos</span>
           {data.patient.name && (
             <span className="truncate text-[15px] text-[color:var(--ap-ink-3)]">· {data.patient.name.split(' ')[0]}</span>
@@ -177,6 +193,35 @@ function BottomNav() {
   )
 }
 
+/** Aviso de que se están viendo datos de ejemplo. */
+function SampleBanner() {
+  const { data } = useData()
+  const [hidden, setHidden] = useState(() => isDismissed('sample'))
+  if (!data.sample || hidden) return null
+  return (
+    <div className="no-print border-b px-4 py-2.5" style={{ backgroundColor: '#eef5fc', borderColor: '#cfe2f6' }}>
+      <div className="mx-auto flex max-w-5xl items-start gap-3 text-[14px] leading-snug text-[color:var(--ap-ink-2)]">
+        <span className="min-w-0 flex-1">
+          <strong className="text-[color:var(--ap-ink)]">Datos de ejemplo.</strong> Carmen está cuidada por sus hijos Ana,
+          Pedro y Lucía y por la cuidadora Rosa. Toca el avatar de arriba para ver la app como cada uno. Para empezar con
+          tu familia: Más → Ajustes → Borrar todo.
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            dismiss('sample')
+            setHidden(true)
+          }}
+          className="shrink-0 rounded-full p-1 text-[color:var(--ap-ink-3)] hover:bg-black/5"
+          aria-label="Cerrar aviso"
+        >
+          <Icon name="x" size={16} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function Shell() {
   const { data, ready, me, storageError } = useData()
   useCalendarAutoRefresh()
@@ -188,10 +233,11 @@ function Shell() {
   if (!me) return <ProfilePicker />
 
   return (
-    <HashRouter>
+    <Router>
       <ScrollToTop />
       <div className="min-h-screen">
         <Header />
+        <SampleBanner />
         {storageError && (
           <div className="no-print px-4 py-2 text-center text-[14px]" style={{ backgroundColor: 'var(--loss-bg)', color: 'var(--loss)' }}>
             No se están pudiendo guardar los datos en este navegador (¿modo privado o sin espacio?).
@@ -218,7 +264,7 @@ function Shell() {
         </main>
         <BottomNav />
       </div>
-    </HashRouter>
+    </Router>
   )
 }
 

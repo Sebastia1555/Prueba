@@ -4,6 +4,7 @@ import { MEMBER_COLORS, newId } from '../lib/labels'
 import { buildSampleData } from '../lib/sampleData'
 import { emptyData, replaceAllData } from '../lib/store'
 import { Avatar, Field } from '../components/ui'
+import logo from '../assets/logo.svg'
 
 const FEATURES = [
   ['🗓️', 'Turnos repartidos', 'Quién está cada mañana, tarde y noche, con los huecos sin cubrir a la vista.'],
@@ -49,7 +50,7 @@ export function Welcome() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
       <div className="text-center">
-        <img src="favicon.svg" alt="" width={64} height={64} className="mx-auto rounded-[16px]" />
+        <img src={logo} alt="" width={64} height={64} className="mx-auto rounded-[16px]" />
         <h1 className="mt-3 text-[40px] leading-tight">Cuidamos</h1>
         <p className="mx-auto mt-2 max-w-xl text-[19px] text-[color:var(--ap-ink-2)]">
           Organizad entre hermanos, familia y cuidadores el cuidado de una persona mayor, sin perder el hilo de nada.
@@ -105,7 +106,7 @@ export function ProfilePicker() {
   return (
     <div className="mx-auto max-w-md px-4 py-12" style={{ paddingTop: 'max(3rem, env(safe-area-inset-top))' }}>
       <div className="text-center">
-        <img src="favicon.svg" alt="" width={56} height={56} className="mx-auto rounded-[14px]" />
+        <img src={logo} alt="" width={56} height={56} className="mx-auto rounded-[14px]" />
         <h1 className="mt-3 text-[30px]">¿Quién eres?</h1>
         <p className="mt-1 text-[16px] text-[color:var(--ap-ink-2)]">
           Así sabremos quién da cada toma, quién coge cada turno y qué puedes ver.

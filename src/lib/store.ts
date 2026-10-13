@@ -104,17 +104,24 @@ export async function importBackup(file: Blob): Promise<AppData> {
     throw new Error('El archivo no es una copia de seguridad de Cuidamos.')
   }
   const data = normalizeData(parsed.data)
-  await clearAll()
-  for (const [id, f] of Object.entries(parsed.files ?? {})) {
-    await saveFile(id, base64ToBlob(f.base64, f.type))
-  }
-  await saveData(data)
+  const files: Record<string, Blob> = {}
+  for (const [id, f] of Object.entries(parsed.files ?? {})) files[id] = base64ToBlob(f.base64, f.type)
+  await replaceAllData(data, files)
   return data
 }
 
-/** Guarda los datos y archivos indicados sustituyendo lo que hubiera. */
-export async function replaceAllData(data: AppData, files: Record<string, Blob> = {}): Promise<void> {
+/**
+ * Guarda los datos y archivos indicados sustituyendo lo que hubiera.
+ * Devuelve `false` si no se han podido guardar de forma permanente (los
+ * archivos quedan en memoria y la app sigue funcionando en esta sesión).
+ */
+export async function replaceAllData(data: AppData, files: Record<string, Blob> = {}): Promise<boolean> {
   await clearAll()
   for (const [id, blob] of Object.entries(files)) await saveFile(id, blob)
-  await saveData(data)
+  try {
+    await saveData(data)
+    return true
+  } catch {
+    return false
+  }
 }

@@ -7,6 +7,7 @@ import { formatAmount, scheduleSummary } from '../lib/medication'
 import { Modal } from '../components/Modal'
 import { Icon } from '../components/Icon'
 import { Field, PageHeader } from '../components/ui'
+import { IS_PREVIEW } from '../lib/env'
 
 /** Ficha con todo lo que hay que saber en una urgencia. */
 export function EmergencyCard() {
@@ -34,9 +35,11 @@ export function EmergencyCard() {
         subtitle="Para enseñar en urgencias o a un médico nuevo"
         actions={
           <>
-            <button type="button" className="ap-btn ap-btn-sm ap-btn-neutral" onClick={() => window.print()}>
-              <Icon name="printer" size={16} /> Imprimir
-            </button>
+            {!IS_PREVIEW && (
+              <button type="button" className="ap-btn ap-btn-sm ap-btn-neutral" onClick={() => window.print()}>
+                <Icon name="printer" size={16} /> Imprimir
+              </button>
+            )}
             {can('editPatient') && (
               <button type="button" className="ap-btn ap-btn-sm ap-btn-primary" onClick={() => setEditing(true)}>
                 <Icon name="edit" size={16} /> Editar

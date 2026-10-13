@@ -13,6 +13,7 @@ import {
   WEEKDAYS,
 } from '../lib/dates'
 import { buildIcs, careEvents, fetchIcs, parseIcs } from '../lib/ics'
+import { IS_PREVIEW } from '../lib/env'
 import { downloadBlob, newId } from '../lib/labels'
 import { conflictLabel, memberConflicts } from '../lib/shifts'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -354,6 +355,7 @@ function CalendarsSection({ memberId, calendars }: { memberId: string; calendars
             }}
           />
         </div>
+        {!IS_PREVIEW && (
         <div className="mt-3 flex gap-2">
           <input
             className="ap-input"
@@ -366,6 +368,7 @@ function CalendarsSection({ memberId, calendars }: { memberId: string; calendars
             <Icon name="link" size={16} /> Enlazar
           </button>
         </div>
+        )}
 
         {busy && <p className="mt-3 text-[14px] text-[color:var(--ap-ink-3)]">Importando…</p>}
         {error && (
@@ -382,9 +385,25 @@ function CalendarsSection({ memberId, calendars }: { memberId: string; calendars
         )}
 
         <button type="button" className="ap-link mt-3 text-[14px]" onClick={() => setHelp(!help)}>
-          {help ? 'Ocultar ayuda' : '¿Cómo consigo el archivo o el enlace de mi calendario?'}
+          {help ? 'Ocultar ayuda' : IS_PREVIEW ? '¿Cómo consigo el archivo de mi calendario?' : '¿Cómo consigo el archivo o el enlace de mi calendario?'}
         </button>
-        {help && (
+        {help && IS_PREVIEW && (
+          <div className="mt-2 space-y-2 text-[14px] text-[color:var(--ap-ink-2)]">
+            <p>
+              <strong>Google Calendar</strong> (desde el ordenador): Configuración → Importar y exportar → Exportar. Se
+              descarga un .zip con un .ics por calendario; sube el tuyo.
+            </p>
+            <p>
+              <strong>Apple Calendar</strong> (Mac): selecciona el calendario → Archivo → Exportar → Exportar…
+            </p>
+            <p>
+              <strong>Outlook</strong>: Configuración → Calendario → Calendarios compartidos → Publicar un calendario →
+              descarga el enlace ICS.
+            </p>
+            <p>En la app instalada también se podrá enlazar el calendario para que se actualice solo.</p>
+          </div>
+        )}
+        {help && !IS_PREVIEW && (
           <div className="mt-2 space-y-2 text-[14px] text-[color:var(--ap-ink-2)]">
             <p>
               <strong>Google Calendar</strong> (desde el ordenador): Configuración → elige tu calendario → «Integrar el
@@ -480,6 +499,14 @@ function ExportSection({ memberId, memberName }: { memberId: string; memberName:
           Descarga tus turnos y las citas en las que acompañas y ábrelo con tu calendario (Google, Apple, Outlook) para
           tenerlo todo junto. Si cambia algo, vuelve a descargarlo: los eventos se actualizan sin duplicarse.
         </p>
+        {IS_PREVIEW ? (
+          <div className="mt-3">
+            <Notice icon="calendar">
+              En esta vista previa no se pueden descargar archivos de calendario. Ahora mismo tendrías {mine.length}{' '}
+              {mine.length === 1 ? 'evento' : 'eventos'} de {memberName} y {all.length} de toda la agenda.
+            </Notice>
+          </div>
+        ) : (
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
@@ -498,6 +525,7 @@ function ExportSection({ memberId, memberName }: { memberId: string; memberName:
             <Icon name="download" size={16} /> Agenda completa ({all.length})
           </button>
         </div>
+        )}
       </div>
     </Section>
   )

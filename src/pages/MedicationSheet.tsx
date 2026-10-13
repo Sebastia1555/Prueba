@@ -5,6 +5,7 @@ import { addDays, dateRange, formatDate, formatDayShort, startOfWeek, todayISO, 
 import { formatAmount, isScheduledOn, scheduleSummary } from '../lib/medication'
 import { Icon } from '../components/Icon'
 import { Checkbox } from '../components/ui'
+import { IS_PREVIEW } from '../lib/env'
 
 /** Hoja de medicación para imprimir (nevera, cuidadora, urgencias). */
 export function MedicationSheet() {
@@ -33,9 +34,11 @@ export function MedicationSheet() {
           <Checkbox checked={withLog} onChange={setWithLog}>
             Incluir registro semanal
           </Checkbox>
-          <button type="button" className="ap-btn ap-btn-sm ap-btn-primary" onClick={() => window.print()}>
-            <Icon name="printer" size={16} /> Imprimir
-          </button>
+          {!IS_PREVIEW && (
+            <button type="button" className="ap-btn ap-btn-sm ap-btn-primary" onClick={() => window.print()}>
+              <Icon name="printer" size={16} /> Imprimir
+            </button>
+          )}
         </div>
       </div>
 

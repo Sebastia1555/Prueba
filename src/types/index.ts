@@ -235,6 +235,8 @@ export interface Settlement {
 
 export interface AppData {
   version: 1
+  /** Datos de ejemplo cargados para probar la app. */
+  sample?: boolean
   patient: Patient
   members: Member[]
   slots: CareSlot[]
@@ -252,7 +254,7 @@ export interface AppData {
 
 /** Colecciones de AppData que son listas de elementos con `id`. */
 export type ListKey = {
-  [K in keyof AppData]: AppData[K] extends { id: string }[] ? K : never
+  [K in keyof AppData]-?: AppData[K] extends { id: string }[] ? K : never
 }[keyof AppData]
 
 export type ListItem<K extends ListKey> = AppData[K][number]

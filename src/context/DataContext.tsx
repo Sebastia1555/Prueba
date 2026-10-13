@@ -10,8 +10,10 @@ import {
 } from 'react'
 import type { AppData, ListItem, ListKey, Member } from '../types'
 import { deleteFile, loadData, loadMeId, requestPersistentStorage, saveData, saveMeId } from '../lib/db'
+import { IS_PREVIEW } from '../lib/env'
 import { can as roleCan, type Permission } from '../lib/permissions'
-import { emptyData, normalizeData } from '../lib/store'
+import { buildSampleData } from '../lib/sampleData'
+import { emptyData, normalizeData, replaceAllData } from '../lib/store'
 
 interface DataContextValue {
   data: AppData
@@ -42,12 +44,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false
+    // En la vista previa se abre directamente con la familia de ejemplo.
+    const bootSample = () => {
+      const sample = buildSampleData()
+      setData(sample.data)
+      const firstId = sample.data.members[0].id
+      setMeIdState(firstId)
+      saveMeId(firstId)
+      void replaceAllData(sample.data, sample.files).then((saved) => {
+        if (!saved) setStorageError(true)
+      })
+    }
     loadData()
       .then((stored) => {
-        if (!cancelled && stored) setData(normalizeData(stored))
+        if (cancelled) return
+        if (stored) setData(normalizeData(stored))
+        else if (IS_PREVIEW) bootSample()
       })
       .catch(() => {
-        if (!cancelled) setStorageError(true)
+        if (cancelled) return
+        setStorageError(true)
+        if (IS_PREVIEW) bootSample()
       })
       .finally(() => {
         if (!cancelled) setReady(true)

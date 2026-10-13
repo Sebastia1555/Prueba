@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../context/DataContext'
 import { dateTimeMs, formatDayLong, formatInDays } from '../lib/dates'
 import { buildIcs } from '../lib/ics'
+import { IS_PREVIEW } from '../lib/env'
 import { downloadBlob } from '../lib/labels'
 import { DEFAULT_APPOINTMENT_MINUTES, memberConflicts } from '../lib/shifts'
 import { AppointmentForm } from '../components/AppointmentForm'
@@ -76,7 +77,7 @@ export function AppointmentDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {a.status === 'scheduled' && (
+          {a.status === 'scheduled' && !IS_PREVIEW && (
             <button type="button" className="ap-btn ap-btn-sm ap-btn-neutral" onClick={exportIcs}>
               <Icon name="calendar" size={16} /> A mi calendario
             </button>

@@ -15,6 +15,7 @@ import {
   todayISO,
 } from '../lib/dates'
 import { useNow } from '../lib/hooks'
+import { IS_PREVIEW } from '../lib/env'
 import { newId } from '../lib/labels'
 import {
   dosesForDay,
@@ -49,7 +50,7 @@ export function Medications() {
         actions={
           <>
             <Link to="/medicacion/imprimir" className="ap-btn ap-btn-sm ap-btn-neutral">
-              <Icon name="printer" size={16} /> Hoja para imprimir
+              <Icon name="printer" size={16} /> {IS_PREVIEW ? 'Hoja de medicación' : 'Hoja para imprimir'}
             </Link>
             {can('editMedications') && (
               <button type="button" className="ap-btn ap-btn-sm ap-btn-primary" onClick={() => setEditing('new')}>
