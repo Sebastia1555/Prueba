@@ -126,13 +126,13 @@ export function Cameras() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[16px] font-semibold">{c.name}</span>
+                      <span className="min-w-0 text-[16px] font-semibold [overflow-wrap:anywhere]">{c.name}</span>
                       <Badge>{KIND_LABELS[c.kind]}</Badge>
                     </div>
-                    <div className="text-[14px] text-[color:var(--ap-ink-2)]">
+                    <div className="text-[14px] text-[color:var(--ap-ink-2)] [overflow-wrap:anywhere]">
                       {[c.model, c.viewApp && `Hoy se ve en: ${c.viewApp}`].filter(Boolean).join(' · ')}
                     </div>
-                    {c.notes && <div className="text-[14px] text-[color:var(--ap-ink-3)]">{c.notes}</div>}
+                    {c.notes && <div className="text-[14px] text-[color:var(--ap-ink-3)] [overflow-wrap:anywhere]">{c.notes}</div>}
                   </div>
                   <Icon name="edit" size={18} className="mt-1 shrink-0 text-[color:var(--ap-ink-3)]" />
                 </button>
@@ -148,8 +148,12 @@ export function Cameras() {
             <li>Contad con {first}: explicadle qué cámaras hay y para qué, y respetad su opinión siempre que pueda darla.</li>
             <li>Nada de cámaras en el baño ni en el dormitorio.</li>
             <li>
-              Si hay una cuidadora contratada, hay que informarle por escrito de que hay cámaras y de dónde están: es
-              obligatorio.
+              Si hay una cuidadora contratada, la ley obliga a informarle antes, de forma clara, de que hay cámaras, dónde
+              están y para qué sirven. Mejor por escrito y firmado, para poder demostrarlo.
+            </li>
+            <li>
+              Las cámaras son para la seguridad de {first}, no para vigilar el trabajo de nadie, y nunca en la habitación
+              de una cuidadora interna.
             </li>
             <li>Solo la familia con permiso podrá verlas desde la app; la cuidadora, no.</li>
           </ul>
@@ -273,7 +277,7 @@ function CameraForm({ camera, onClose }: { camera?: Camera; onClose: () => void 
       <ConfirmDialog
         open={confirmDelete}
         title="Eliminar cámara"
-        message={`Se quitará «${c.name}» de la lista.`}
+        message={`Se quitará «${camera?.name ?? c.name}» de la lista.`}
         confirmLabel="Eliminar"
         danger
         onCancel={() => setConfirmDelete(false)}

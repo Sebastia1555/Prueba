@@ -33,7 +33,7 @@ acompaña al médico y dónde están todos los informes.
   llama o abre la puerta y recibir avisos de posibles caídas. De momento muestra cómo se verá y permite apuntar qué
   cámaras hay (dónde, marca y modelo, con qué app se ven hoy). Solo la ven administradores y familiares.
 - **Roles**: administrador/a (todo), familiar (todo salvo la pauta, los roles y los ajustes) y cuidador/a (agenda,
-  tomas, diario, citas y ficha; sin gastos ni documentos).
+  tomas, diario, citas y ficha; sin gastos, documentos ni cámaras).
 
 ## Datos
 
@@ -54,7 +54,8 @@ hermanos y una cuidadora).
 - Integración de cámaras: vista en directo (RTSP/ONVIF a través de un servidor que lo convierta a WebRTC/HLS, o las
   APIs de cada fabricante como Google Nest Device Access o Ring), eventos del timbre con foto apuntados en el diario,
   avisos de caída o de falta de movimiento a quien esté de turno, grabación de los avisos y registro de quién mira cada
-  cámara. Antes de conectarlas: informar a la persona cuidada y, si hay cuidadora contratada, informarle por escrito.
+  cámara. Antes de conectarlas: contar con la persona cuidada y, si hay cuidadora contratada, informarle antes y de
+  forma clara de que hay cámaras, dónde están y para qué sirven (mejor por escrito y firmado); nunca en su habitación.
 
 ## Desarrollo
 

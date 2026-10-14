@@ -142,6 +142,8 @@ function BackupSection() {
   const [message, setMessage] = useState<{ tone: 'green' | 'red'; text: string } | null>(null)
   const [usage, setUsage] = useState<string | null>(null)
   const admin = can('manageSettings')
+  // La copia lleva todo (gastos, documentos, cámaras): solo para quien puede verlo todo.
+  const canBackup = can('viewExpenses') && can('viewDocuments') && can('viewCameras')
 
   useEffect(() => {
     navigator.storage
@@ -200,10 +202,15 @@ function BackupSection() {
           compartirlos con la familia, descarga una copia y ábrela en el otro dispositivo con «Restaurar».
         </Notice>
         {usage && <p className="text-[14px] text-[color:var(--ap-ink-2)]">Espacio usado: {usage}</p>}
+        {!canBackup && (
+          <p className="text-[14px] text-[color:var(--ap-ink-2)]">La copia de seguridad la descargan los familiares.</p>
+        )}
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="ap-btn ap-btn-sm ap-btn-primary" onClick={doExport}>
-            <Icon name="download" size={16} /> Descargar copia
-          </button>
+          {canBackup && (
+            <button type="button" className="ap-btn ap-btn-sm ap-btn-primary" onClick={doExport}>
+              <Icon name="download" size={16} /> Descargar copia
+            </button>
+          )}
           {admin && (
             <>
               <button type="button" className="ap-btn ap-btn-sm ap-btn-neutral" onClick={() => fileRef.current?.click()}>
