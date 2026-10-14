@@ -43,15 +43,23 @@ const num = (v: string, fallback = 0) => {
 
 const SUGGESTED_TIMES = ['09:00', '21:00', '14:00', '12:00', '18:00', '23:00', '06:00']
 
+/** Campos que cambian cuánto se consume. */
+const SCHEDULE_FIELDS = ['doses', 'frequency', 'weekdays', 'intervalDays', 'asNeeded', 'startDate', 'endDate', 'active'] as const
+
+const sortDoses = (doses: DoseTime[]) => [...doses].sort((a, b) => a.time.localeCompare(b.time))
+
 export function MedicationForm({ medication, onClose }: { medication?: Medication; onClose: () => void }) {
-  const { data, upsert, remove } = useData()
+  const { data, update, remove } = useData()
   const [m, setM] = useState<Medication>(() => medication ?? blankMedication())
-  // Lo que queda HOY según la pauta actual: al guardar se toma como nuevo
-  // recuento, para que un cambio de pauta no recalcule el consumo pasado.
-  const [estimate] = useState(() => (medication ? stockStatus(medication, data.doseLogs).remaining : 28))
-  const [stockText, setStockText] = useState(() => String(estimate).replace('.', ','))
-  // Clave estable por fila para que borrar una toma no mezcle las cantidades.
-  const [rowIds, setRowIds] = useState(() => m.doses.map(() => newId()))
+  // Lo que queda ahora según la pauta, para mostrarlo y poder corregirlo.
+  const [initialStockText] = useState(() =>
+    String(medication ? stockStatus(medication, data.doseLogs).remaining : 28).replace('.', ','),
+  )
+  const [stockText, setStockText] = useState(initialStockText)
+  // Clave estable por fila (para que borrar una toma no mezcle las cantidades)
+  // y la hora que tenía cada fila al abrir, para mover sus registros si cambia.
+  const [initialRows] = useState(() => m.doses.map((d) => ({ id: newId(), time: d.time })))
+  const [rowIds, setRowIds] = useState(() => initialRows.map((r) => r.id))
   const [confirmDelete, setConfirmDelete] = useState(false)
   const set = <K extends keyof Medication>(key: K, value: Medication[K]) => setM((prev) => ({ ...prev, [key]: value }))
 
@@ -79,14 +87,49 @@ export function MedicationForm({ medication, onClose }: { medication?: Medicatio
 
   const save = () => {
     if (!valid) return
-    const stock = stockText.trim() === '' ? estimate : Math.max(0, num(stockText, estimate))
-    upsert('medications', {
-      ...m,
-      name: m.name.trim(),
-      doses: [...m.doses].sort((a, b) => a.time.localeCompare(b.time)),
-      stockUnits: stock,
-      stockCountedAt: Date.now(),
-    })
+    const now = Date.now()
+    const doses = sortDoses(m.doses)
+
+    // Stock: un recuento nuevo solo si se ha corregido a mano, o si cambia la
+    // pauta (entonces se fija lo que queda hoy, para que la pauta nueva no
+    // recalcule el consumo pasado). Si no, se conserva el último recuento.
+    const current = medication ? stockStatus(medication, data.doseLogs, now).remaining : 0
+    let stockUnits = medication?.stockUnits ?? 0
+    let stockCountedAt = medication?.stockCountedAt ?? now
+    const scheduleChanged =
+      !!medication &&
+      SCHEDULE_FIELDS.some((k) =>
+        k === 'doses'
+          ? JSON.stringify(sortDoses(medication.doses)) !== JSON.stringify(doses)
+          : JSON.stringify(medication[k]) !== JSON.stringify(m[k]),
+      )
+    if (!medication || stockText !== initialStockText) {
+      stockUnits = stockText.trim() === '' ? current : Math.max(0, num(stockText, current))
+      stockCountedAt = now
+    } else if (scheduleChanged) {
+      stockUnits = current
+      stockCountedAt = now
+    }
+
+    // Tomas que han cambiado de hora: sus registros pasan a la hora nueva.
+    const moved = new Map<string, string>()
+    if (medication) {
+      rowIds.forEach((id, i) => {
+        const original = initialRows.find((r) => r.id === id)
+        if (original && original.time !== m.doses[i].time) moved.set(original.time, m.doses[i].time)
+      })
+    }
+
+    const saved: Medication = { ...m, name: m.name.trim(), doses, stockUnits, stockCountedAt }
+    update((d) => ({
+      ...d,
+      medications: d.medications.some((x) => x.id === saved.id)
+        ? d.medications.map((x) => (x.id === saved.id ? saved : x))
+        : [...d.medications, saved],
+      doseLogs: moved.size
+        ? d.doseLogs.map((l) => (l.medicationId === saved.id && moved.has(l.time) ? { ...l, time: moved.get(l.time)! } : l))
+        : d.doseLogs,
+    }))
     onClose()
   }
 

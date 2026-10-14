@@ -389,12 +389,14 @@ function ScheduleTab({ onEdit }: { onEdit: (m: Medication) => void }) {
           <Notice icon="lock">Solo un administrador puede cambiar la pauta de medicación.</Notice>
         </div>
       )}
-      {active.length === 0 ? (
+      {active.length > 0 ? (
+        <ul className="ap-card divide-y overflow-hidden">{active.map(card)}</ul>
+      ) : upcoming.length > 0 ? (
+        <p className="ap-card p-4 text-[15px] text-[color:var(--ap-ink-2)]">Hoy no hay ningún tratamiento en curso.</p>
+      ) : (
         <EmptyState icon="💊" title="Aún no hay medicamentos">
           Añade la medicación con su horario para que todos sepan qué tomar cada día.
         </EmptyState>
-      ) : (
-        <ul className="ap-card divide-y overflow-hidden">{active.map(card)}</ul>
       )}
       {upcoming.length > 0 && (
         <Section title="Empiezan más adelante" className="mt-6">

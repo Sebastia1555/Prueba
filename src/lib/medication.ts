@@ -52,20 +52,14 @@ export function dosesForDay(meds: Medication[], logs: DoseLog[], date: string): 
     if (!isScheduledOn(med, date)) continue
     const doses = [...med.doses].sort((a, b) => a.time.localeCompare(b.time))
     const medLogs = dayLogs.filter((l) => l.medicationId === med.id).sort((a, b) => a.time.localeCompare(b.time))
+    // Cada registro casa con una sola toma de su misma hora. Cuando se cambia
+    // la hora de una toma, el formulario mueve también sus registros.
     const used = new Set<string>()
-    const matched = doses.map((d) => {
+    for (const d of doses) {
       const log = medLogs.find((l) => l.time === d.time && !used.has(l.id))
       if (log) used.add(log.id)
-      return log
-    })
-    // Registros cuya hora ya no está en la pauta (la toma se cambió de hora
-    // después): se asignan por orden a las tomas que quedan sin registrar,
-    // para no ofrecer dar otra vez algo que ya se dio.
-    const leftovers = medLogs.filter((l) => !used.has(l.id))
-    doses.forEach((d, i) => {
-      if (!matched[i] && leftovers.length) matched[i] = leftovers.shift()
-      out.push({ med, date, time: d.time, amount: d.amount, log: matched[i] })
-    })
+      out.push({ med, date, time: d.time, amount: d.amount, log })
+    }
   }
   return out.sort((a, b) => a.time.localeCompare(b.time) || a.med.name.localeCompare(b.med.name))
 }
