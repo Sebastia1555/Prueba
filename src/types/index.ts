@@ -238,6 +238,25 @@ export interface Settlement {
   note: string
 }
 
+export type CameraKind = 'interior' | 'puerta' | 'exterior'
+
+/**
+ * Cámara de casa de la persona cuidada. De momento solo se apunta cuál hay y
+ * con qué app se ve; más adelante se podrá ver en directo desde aquí.
+ */
+export interface Camera {
+  id: string
+  /** Dónde está: "Salón", "Pasillo", "Entrada"… */
+  name: string
+  kind: CameraKind
+  /** Marca y modelo, p. ej. "TP-Link Tapo C200". */
+  model: string
+  /** Con qué app se ve hoy, p. ej. "App Tapo (cuenta de Ana)". */
+  viewApp: string
+  notes: string
+  createdAt: number
+}
+
 export interface AppData {
   version: 1
   /** Datos de ejemplo cargados para probar la app. */
@@ -255,6 +274,7 @@ export interface AppData {
   diary: DiaryEntry[]
   expenses: Expense[]
   settlements: Settlement[]
+  cameras: Camera[]
 }
 
 /** Colecciones de AppData que son listas de elementos con `id`. */

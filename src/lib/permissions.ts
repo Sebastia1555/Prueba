@@ -15,6 +15,7 @@ export type Permission =
   | 'viewExpenses'
   | 'editExpenses'
   | 'writeDiary'
+  | 'viewCameras'
 
 const FAMILIAR: Permission[] = [
   'editPatient',
@@ -28,6 +29,7 @@ const FAMILIAR: Permission[] = [
   'viewExpenses',
   'editExpenses',
   'writeDiary',
+  'viewCameras',
 ]
 
 const CUIDADOR: Permission[] = ['logDoses', 'manageStock', 'takeShifts', 'writeDiary']
@@ -50,5 +52,5 @@ export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   familiar:
     'Organiza turnos y citas, registra tomas, compras, documentos y gastos. No cambia la pauta ni los roles.',
   cuidador:
-    'Ve la agenda, la medicación del día, las citas y la ficha. Registra tomas y notas del diario. No ve gastos ni documentos.',
+    'Ve la agenda, la medicación del día, las citas y la ficha. Registra tomas y notas del diario. No ve gastos, documentos ni cámaras.',
 }

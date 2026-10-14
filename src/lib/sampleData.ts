@@ -581,5 +581,21 @@ export function buildSampleData(): { data: AppData; files: Record<string, Blob> 
   ]
   data.settlements = [{ id: newId(), date: d(-18), fromId: pedro.id, toId: ana.id, amountCents: 30000, note: 'Bizum' }]
 
+  // Cámaras que ya hay en casa (aún sin conectar a la app).
+  const camera = (name: string, kind: AppData['cameras'][number]['kind'], model: string, viewApp: string, notes = '') => ({
+    id: newId(),
+    name,
+    kind,
+    model,
+    viewApp,
+    notes,
+    createdAt: now,
+  })
+  data.cameras = [
+    camera('Salón', 'interior', 'TP-Link Tapo C200', 'App Tapo (cuenta de Ana)', 'Enfoca al sillón donde suele estar por las tardes.'),
+    camera('Pasillo hacia el baño', 'interior', 'TP-Link Tapo C200', 'App Tapo (cuenta de Ana)', 'Es donde más riesgo hay de caída por la noche.'),
+    camera('Puerta de entrada', 'puerta', 'Ring Video Doorbell', 'App Ring (cuenta de Pedro)', 'Avisa al móvil de Pedro cuando llaman.'),
+  ]
+
   return { data, files }
 }

@@ -24,6 +24,7 @@ import { EmergencyCard } from './pages/EmergencyCard'
 import { Family } from './pages/Family'
 import { Settings } from './pages/Settings'
 import { More } from './pages/More'
+import { Cameras } from './pages/Cameras'
 import { ProfilePicker, Welcome } from './pages/Welcome'
 import logo from './assets/logo.svg'
 
@@ -241,6 +242,7 @@ function RoutedContent() {
         <Route path="/gastos" element={<Expenses />} />
         <Route path="/ficha" element={<EmergencyCard />} />
         <Route path="/familia" element={<Family />} />
+        <Route path="/camaras" element={<Cameras />} />
         <Route path="/ajustes" element={<Settings />} />
         <Route path="/mas" element={<More />} />
         <Route path="*" element={<Home />} />

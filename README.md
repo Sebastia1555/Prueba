@@ -29,6 +29,9 @@ acompaña al médico y dónde están todos los informes.
 - **Gastos compartidos**: quién ha pagado qué, saldos y las transferencias mínimas para quedar en paz.
 - **Ficha de emergencia**: alergias, enfermedades, medicación actual, médico, tarjeta sanitaria y contactos con
   botón de llamada; imprimible.
+- **Cámaras (próximamente)**: sección para ver en directo las cámaras de casa de la persona cuidada, saber quién
+  llama o abre la puerta y recibir avisos de posibles caídas. De momento muestra cómo se verá y permite apuntar qué
+  cámaras hay (dónde, marca y modelo, con qué app se ven hoy). Solo la ven administradores y familiares.
 - **Roles**: administrador/a (todo), familiar (todo salvo la pauta, los roles y los ajustes) y cuidador/a (agenda,
   tomas, diario, citas y ficha; sin gastos ni documentos).
 
@@ -48,6 +51,10 @@ hermanos y una cuidadora).
 - Suscripción a calendarios personales desde el servidor (sin las limitaciones del navegador) y enlace de
   suscripción a la agenda de cuidados para que se actualice sola en el calendario de cada uno.
 - Notificaciones push (toma atrasada, turno sin cubrir, cita mañana…).
+- Integración de cámaras: vista en directo (RTSP/ONVIF a través de un servidor que lo convierta a WebRTC/HLS, o las
+  APIs de cada fabricante como Google Nest Device Access o Ring), eventos del timbre con foto apuntados en el diario,
+  avisos de caída o de falta de movimiento a quien esté de turno, grabación de los avisos y registro de quién mira cada
+  cámara. Antes de conectarlas: informar a la persona cuidada y, si hay cuidadora contratada, informarle por escrito.
 
 ## Desarrollo
 

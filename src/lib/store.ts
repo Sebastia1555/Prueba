@@ -51,6 +51,7 @@ export function emptyData(): AppData {
     diary: [],
     expenses: [],
     settlements: [],
+    cameras: [],
   }
 }
 

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useData } from '../context/DataContext'
 import { Icon } from '../components/Icon'
-import { PageHeader } from '../components/ui'
+import { Badge, PageHeader } from '../components/ui'
 import { MORE_LINKS } from '../lib/nav'
 
 export function More() {
@@ -17,7 +17,10 @@ export function More() {
                 <Icon name={l.icon} />
               </span>
               <div className="min-w-0 flex-1">
-                <div className="text-[17px] font-semibold">{l.label}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[17px] font-semibold">{l.label}</span>
+                  {l.badge && <Badge tone="amber">{l.badge}</Badge>}
+                </div>
                 <div className="text-[14px] text-[color:var(--ap-ink-2)]">{l.description}</div>
               </div>
               <Icon name="chevronRight" size={18} className="text-[color:var(--ap-ink-3)]" />

@@ -155,6 +155,12 @@ const PATHS = {
       <path d="M4 21a8 8 0 0 1 16 0" />
     </>
   ),
+  camera: (
+    <>
+      <path d="m22 8-6 4 6 4V8z" />
+      <rect x="2" y="6" width="14" height="12" rx="2" />
+    </>
+  ),
   lock: (
     <>
       <rect x="4" y="11" width="16" height="10" rx="2" />
