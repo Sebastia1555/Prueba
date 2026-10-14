@@ -75,14 +75,14 @@ export function isOverdue(dose: ScheduledDose, now = Date.now()): boolean {
 const OVERDUE_LOOKBACK_HOURS = 12
 
 /**
- * Tomas atrasadas sin registrar: las de hoy y las de anoche (así una toma de
- * las 23:00 olvidada sigue avisando pasada la medianoche).
+ * Tomas atrasadas sin registrar: las de hoy y las de ayer de las últimas horas
+ * (así una toma de las 23:00 olvidada sigue avisando pasada la medianoche).
  */
 export function overdueDoses(meds: Medication[], logs: DoseLog[], now = Date.now()): ScheduledDose[] {
   const today = msToISODate(now)
   const since = now - OVERDUE_LOOKBACK_HOURS * 3600_000
-  const lastNight = dosesForDay(meds, logs, addDays(today, -1)).filter((d) => dateTimeMs(d.date, d.time) > since)
-  return [...lastNight, ...dosesForDay(meds, logs, today)].filter((d) => isOverdue(d, now))
+  const yesterday = dosesForDay(meds, logs, addDays(today, -1)).filter((d) => dateTimeMs(d.date, d.time) > since)
+  return [...yesterday, ...dosesForDay(meds, logs, today)].filter((d) => isOverdue(d, now))
 }
 
 export function unitsPerDay(med: Medication): number {
@@ -158,6 +158,44 @@ export function stockStatus(med: Medication, logs: DoseLog[], now = Date.now()):
   if (remaining <= 0 || daysLeft === 0) level = 'out'
   else if (daysLeft !== null && daysLeft <= med.alertDays) level = 'low'
   return { remaining, daysLeft, runOutDate, level }
+}
+
+/** Campos que cambian cuánto se consume. */
+const SCHEDULE_FIELDS = ['doses', 'frequency', 'weekdays', 'intervalDays', 'asNeeded', 'startDate', 'endDate', 'active'] as const
+
+const sameDoses = (a: Medication['doses'], b: Medication['doses']) => {
+  const key = (d: Medication['doses']) => JSON.stringify([...d].sort((x, y) => x.time.localeCompare(y.time)))
+  return key(a) === key(b)
+}
+
+/**
+ * Recuento de stock al guardar cambios en un medicamento:
+ * - Si se ha escrito a mano cuánto queda (`manualCount`), ese es el recuento.
+ * - Si se suspende o se reanuda, lo que queda en este momento.
+ * - Si cambia la pauta, lo que quedaba al empezar el día (o el recuento de
+ *   hoy si ya lo había): las tomas de hoy se cuentan con la pauta nueva, así
+ *   que una toma ya dada que cambia de hora no se descuenta dos veces.
+ * - Si no, se conserva el último recuento.
+ */
+export function stockOnSave(
+  original: Medication | undefined,
+  edited: Medication,
+  logs: DoseLog[],
+  now: number,
+  manualCount: number | null,
+): { stockUnits: number; stockCountedAt: number } {
+  if (!original || manualCount !== null) return { stockUnits: manualCount ?? edited.stockUnits, stockCountedAt: now }
+  const keep = { stockUnits: original.stockUnits, stockCountedAt: original.stockCountedAt }
+  const scheduleChanged = SCHEDULE_FIELDS.some((k) =>
+    k === 'doses' ? !sameDoses(original.doses, edited.doses) : JSON.stringify(original[k]) !== JSON.stringify(edited[k]),
+  )
+  if (!scheduleChanged) return keep
+  if (original.active !== edited.active) {
+    return { stockUnits: stockStatus(original, logs, now).remaining, stockCountedAt: now }
+  }
+  const dayStart = dateTimeMs(msToISODate(now), '00:00')
+  if (original.stockCountedAt >= dayStart) return keep
+  return { stockUnits: stockStatus(original, logs, dayStart).remaining, stockCountedAt: dayStart }
 }
 
 export function prescriptionDaysLeft(med: Medication): number | null {

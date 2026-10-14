@@ -5,7 +5,7 @@ import { dateTimeMs, formatDayLong, formatInDays } from '../lib/dates'
 import { buildIcs } from '../lib/ics'
 import { IS_PREVIEW } from '../lib/env'
 import { downloadBlob } from '../lib/labels'
-import { DEFAULT_APPOINTMENT_MINUTES, memberConflicts } from '../lib/shifts'
+import { blocking, DEFAULT_APPOINTMENT_MINUTES, memberConflicts } from '../lib/shifts'
 import { AppointmentForm } from '../components/AppointmentForm'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { DocumentList, DocumentUploadButton } from '../components/Documents'
@@ -38,7 +38,7 @@ export function AppointmentDetail() {
   const isPast = end < Date.now()
   const canEdit = can('editAppointments')
   const questions = a.questions.split('\n').map((q) => q.trim()).filter(Boolean)
-  const myConflicts = me && !a.companionId ? memberConflicts(data, me.id, start, end, { appointmentId: a.id }) : []
+  const myConflicts = me && !a.companionId ? blocking(memberConflicts(data, me.id, start, end, { appointmentId: a.id })) : []
 
   const accompany = () => me && upsert('appointments', { ...a, companionId: me.id })
 

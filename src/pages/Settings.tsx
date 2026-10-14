@@ -134,7 +134,7 @@ function SlotForm({ slot, onClose }: { slot?: CareSlot; onClose: () => void }) {
 }
 
 function BackupSection() {
-  const { data, can, replaceData, setMeId } = useData()
+  const { data, can, replaceData, setMeId, storageLocked } = useData()
   const fileRef = useRef<HTMLInputElement>(null)
   const [pendingImport, setPendingImport] = useState<File | null>(null)
   const [confirmSample, setConfirmSample] = useState(false)
@@ -160,7 +160,8 @@ function BackupSection() {
 
   const doImport = async (file: File) => {
     try {
-      const { data: next, persisted } = await importBackup(file)
+      // Si no se han podido leer los datos guardados, no se tocan: la copia solo se carga para esta sesión.
+      const { data: next, persisted } = await importBackup(file, !storageLocked)
       replaceData(next, persisted)
       setMeId(null)
     } catch (e) {
@@ -170,7 +171,7 @@ function BackupSection() {
 
   const loadSample = async () => {
     const { data: sample, files } = buildSampleData()
-    const outcome = await replaceAllData(sample, files)
+    const outcome = await replaceAllData(sample, files, !storageLocked)
     if (outcome === 'failed') {
       setMessage({ tone: 'red', text: 'No hay espacio en este dispositivo para cargar los datos de ejemplo. No se ha cambiado nada.' })
       return
@@ -181,8 +182,13 @@ function BackupSection() {
   }
 
   const reset = async () => {
-    await clearAll()
-    replaceData(emptyData())
+    if (storageLocked) {
+      // No borrar lo guardado si no se ha podido leer: solo se vacía esta sesión.
+      replaceData(emptyData(), false)
+    } else {
+      await clearAll()
+      replaceData(emptyData())
+    }
     setMeId(null)
   }
 
@@ -257,7 +263,11 @@ function BackupSection() {
       <ConfirmDialog
         open={confirmReset}
         title="Borrar todo"
-        message="Se borrarán todos los datos y documentos de este dispositivo. Descarga antes una copia si la necesitas."
+        message={
+          storageLocked
+            ? 'Se vaciará lo que ves ahora. Los datos guardados en este navegador no se tocan: al recargar la página se intentará leerlos de nuevo.'
+            : 'Se borrarán todos los datos y documentos de este dispositivo. Descarga antes una copia si la necesitas.'
+        }
         confirmLabel="Borrar todo"
         danger
         onCancel={() => setConfirmReset(false)}

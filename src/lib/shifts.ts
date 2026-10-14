@@ -213,10 +213,40 @@ export interface Proposal {
   memberId: string | null
 }
 
+/** Más horas seguidas que esto (o que la propia franja) se evitan al proponer. */
+const MAX_CONTINUOUS_MINUTES = 13 * 60
+
 /**
- * Propone quién cubre cada franja libre: solo personas sin conflictos y,
- * entre ellas, quien menos horas lleva en el mes; a igualdad, quien tiene
- * menos turnos ese día.
+ * Duración del bloque continuo que tendría `memberId` si cogiera [start, end),
+ * juntando sus turnos que empiezan o acaban justo pegados.
+ */
+function continuousSpan(data: AppData, memberId: string, start: number, end: number): number {
+  const slots = new Map(data.slots.map((s) => [s.id, s]))
+  const from = addDays(msToISODate(start), -3)
+  const to = addDays(msToISODate(end), 3)
+  const intervals = data.shifts
+    .filter((s) => s.memberId === memberId && s.date >= from && s.date <= to && slots.has(s.slotId))
+    .map((s) => slotInterval(slots.get(s.slotId)!, s.date))
+  let lo = start
+  let hi = end
+  let grew = true
+  while (grew) {
+    grew = false
+    for (const [s, e] of intervals) {
+      if (e >= lo && s <= hi && (s < lo || e > hi)) {
+        lo = Math.min(lo, s)
+        hi = Math.max(hi, e)
+        grew = true
+      }
+    }
+  }
+  return (hi - lo) / 60_000
+}
+
+/**
+ * Propone quién cubre cada franja libre: solo personas sin conflictos; entre
+ * ellas, primero quien no encadenaría demasiadas horas seguidas, después quien
+ * menos horas lleva en el mes y, a igualdad, quien tiene menos turnos ese día.
  */
 export function proposeAssignments(
   data: AppData,
@@ -235,15 +265,17 @@ export function proposeAssignments(
 
   for (const cell of cells) {
     const [s, e] = slotInterval(cell.slot, cell.date)
+    const limit = Math.max((e - s) / 60_000, MAX_CONTINUOUS_MINUTES)
     const candidates = members
       .filter((m) => blocking(memberConflicts(working, m.id, s, e)).length === 0)
-      .sort(
-        (a, b) =>
-          (load.get(a.id) ?? 0) - (load.get(b.id) ?? 0) ||
-          (perDay.get(`${a.id}|${cell.date}`) ?? 0) - (perDay.get(`${b.id}|${cell.date}`) ?? 0) ||
-          a.name.localeCompare(b.name),
-      )
-    const chosen = candidates[0]
+      .map((m) => ({
+        m,
+        tooLong: continuousSpan(working, m.id, s, e) > limit ? 1 : 0,
+        load: load.get(m.id) ?? 0,
+        today: perDay.get(`${m.id}|${cell.date}`) ?? 0,
+      }))
+      .sort((a, b) => a.tooLong - b.tooLong || a.load - b.load || a.today - b.today || a.m.name.localeCompare(b.m.name))
+    const chosen = candidates[0]?.m
     if (chosen) {
       const minutes = slotMinutesOn(cell.slot, cell.date)
       load.set(chosen.id, (load.get(chosen.id) ?? 0) + minutes)

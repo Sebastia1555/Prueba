@@ -266,7 +266,8 @@ function DayCard({
             <div key={i} className="flex items-center gap-2 text-[13px] text-[color:var(--ap-ink-3)]">
               <Icon name="lock" size={13} />
               <span>
-                Tú: {conflictLabel(c, me?.id)} ·{' '}
+                Tú: {c.tentative && 'quizá '}
+                {conflictLabel(c, me?.id)} ·{' '}
                 {c.end - c.start >= 23 * 3600_000 ? 'todo el día' : `${msToTime(c.start)}–${msToTime(c.end)}`}
               </span>
             </div>

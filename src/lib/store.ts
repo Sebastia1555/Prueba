@@ -1,5 +1,14 @@
 import type { AppData, Patient } from '../types'
-import { deleteFile, deleteFilesExcept, getFile, keepFilesInMemory, listFileIds, saveData, saveFile } from './db'
+import {
+  deleteFile,
+  deleteFilesExcept,
+  getFile,
+  keepFilesInMemory,
+  listFileIds,
+  saveData,
+  saveFile,
+  storageAvailable,
+} from './db'
 import { newId } from './labels'
 import { DEFAULT_SLOTS } from './shifts'
 
@@ -92,8 +101,11 @@ export async function exportBackup(data: AppData): Promise<Blob> {
   return new Blob([JSON.stringify(backup)], { type: 'application/json' })
 }
 
-/** Sustituye todos los datos de este dispositivo por los de la copia. */
-export async function importBackup(file: Blob): Promise<{ data: AppData; persisted: boolean }> {
+/**
+ * Sustituye todos los datos de este dispositivo por los de la copia. Con
+ * `persist = false` solo se cargan para esta sesión, sin tocar lo guardado.
+ */
+export async function importBackup(file: Blob, persist = true): Promise<{ data: AppData; persisted: boolean }> {
   let parsed: BackupFile
   try {
     parsed = JSON.parse(await file.text()) as BackupFile
@@ -110,7 +122,7 @@ export async function importBackup(file: Blob): Promise<{ data: AppData; persist
   } catch {
     throw new Error('La copia de seguridad está dañada: algún documento no se puede leer.')
   }
-  const outcome = await replaceAllData(data, files)
+  const outcome = await replaceAllData(data, files, persist)
   if (outcome === 'failed') {
     throw new Error('No hay espacio suficiente en este dispositivo para restaurar la copia. No se ha cambiado nada.')
   }
@@ -121,10 +133,19 @@ export async function importBackup(file: Blob): Promise<{ data: AppData; persist
  * Sustituye todos los datos y archivos. Primero escribe lo nuevo y solo
  * después borra lo antiguo, así que si algo falla no se pierde nada.
  * - `'stored'`: guardado de forma permanente.
- * - `'memory'`: este navegador no deja guardar; solo vale para esta sesión.
+ * - `'memory'`: solo para esta sesión (el navegador no deja guardar, o se
+ *   ha pedido `persist = false` para no tocar lo guardado).
  * - `'failed'`: no se ha podido escribir (p. ej. sin espacio); no ha cambiado nada.
  */
-export async function replaceAllData(data: AppData, files: Record<string, Blob> = {}): Promise<'stored' | 'memory' | 'failed'> {
+export async function replaceAllData(
+  data: AppData,
+  files: Record<string, Blob> = {},
+  persist = true,
+): Promise<'stored' | 'memory' | 'failed'> {
+  if (!persist || !(await storageAvailable())) {
+    keepFilesInMemory(files)
+    return 'memory'
+  }
   const existing = await listFileIds()
   const written: string[] = []
   try {

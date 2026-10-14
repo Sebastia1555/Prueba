@@ -39,9 +39,9 @@ export function Home() {
   const given = doses.filter((d) => d.log?.status === 'given').length
   const skipped = doses.filter((d) => d.log?.status === 'skipped').length
   const pending = doses.filter((d) => !d.log)
-  // Tomas de anoche que nadie registró, y luego las de hoy de las próximas horas.
-  const lastNight = overdueDoses(data.medications, data.doseLogs, now).filter((d) => d.date !== today)
-  const nextDoses = [...lastNight, ...pending.filter((d) => dateTimeMs(d.date, d.time) <= now + 3 * 3600_000)].slice(0, 4)
+  // Tomas de ayer (de las últimas horas) que nadie registró, y luego las de hoy de las próximas horas.
+  const lateFromYesterday = overdueDoses(data.medications, data.doseLogs, now).filter((d) => d.date !== today)
+  const nextDoses = [...lateFromYesterday, ...pending.filter((d) => dateTimeMs(d.date, d.time) <= now + 3 * 3600_000)].slice(0, 4)
 
   const appointments = data.appointments
     .filter((a) => a.status === 'scheduled' && dateTimeMs(a.date, a.time) > now - 3600_000)
@@ -170,7 +170,7 @@ export function Home() {
           }
         >
           <div className="ap-card p-4">
-            {doses.length === 0 && lastNight.length === 0 ? (
+            {doses.length === 0 && lateFromYesterday.length === 0 ? (
               <p className="text-[15px] text-[color:var(--ap-ink-3)]">No hay tomas programadas hoy.</p>
             ) : (
               <>
@@ -198,7 +198,7 @@ export function Home() {
                     {nextDoses.map((d) => (
                       <li key={d.date + d.med.id + d.time} className="flex items-center gap-2 text-[15px]">
                         <span className="min-w-[3rem] shrink-0 font-medium" style={{ color: isOverdue(d, now) ? 'var(--loss)' : undefined }}>
-                          {d.date !== today && 'anoche '}
+                          {d.date !== today && 'ayer '}
                           {d.time}
                         </span>
                         <span className="min-w-0 flex-1 truncate">

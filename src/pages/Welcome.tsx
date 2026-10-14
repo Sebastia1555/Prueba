@@ -16,7 +16,7 @@ const FEATURES = [
 ]
 
 export function Welcome() {
-  const { update, replaceData, setMeId } = useData()
+  const { update, replaceData, setMeId, storageLocked, storageUnavailable } = useData()
   const [patient, setPatient] = useState('')
   const [name, setName] = useState('')
   const [relation, setRelation] = useState('')
@@ -42,7 +42,7 @@ export function Welcome() {
 
   const sample = async () => {
     const { data, files } = buildSampleData()
-    const outcome = await replaceAllData(data, files)
+    const outcome = await replaceAllData(data, files, !storageLocked)
     replaceData(data, outcome === 'stored')
     setMeId(data.members[0].id)
   }
@@ -94,9 +94,17 @@ export function Welcome() {
           </button>
         </div>
       </div>
-      <p className="mt-6 text-center text-[13px] text-[color:var(--ap-ink-3)]">
-        Versión de prueba: los datos se guardan solo en este dispositivo.
-      </p>
+      {storageLocked ? (
+        <p className="mt-6 rounded-[12px] px-4 py-3 text-center text-[14px]" style={{ backgroundColor: 'var(--loss-bg)', color: 'var(--loss)' }}>
+          {storageUnavailable
+            ? 'Este navegador no deja guardar datos (¿ventana privada?): lo que hagas se perderá al cerrar.'
+            : 'No se han podido leer los datos guardados en este navegador, así que ahora no se guardará nada para no estropearlos. Recarga la página para volver a intentarlo.'}
+        </p>
+      ) : (
+        <p className="mt-6 text-center text-[13px] text-[color:var(--ap-ink-3)]">
+          Versión de prueba: los datos se guardan solo en este dispositivo.
+        </p>
+      )}
     </div>
   )
 }

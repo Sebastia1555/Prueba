@@ -3,7 +3,7 @@ import type { DoseTime, Medication } from '../types'
 import { useData } from '../context/DataContext'
 import { todayISO } from '../lib/dates'
 import { newId } from '../lib/labels'
-import { MED_FORMS, stockStatus } from '../lib/medication'
+import { MED_FORMS, stockOnSave, stockStatus } from '../lib/medication'
 import { Modal } from './Modal'
 import { ConfirmDialog } from './ConfirmDialog'
 import { Checkbox, Field, NumberInput, Segmented, WeekdayPicker } from './ui'
@@ -42,9 +42,6 @@ const num = (v: string, fallback = 0) => {
 }
 
 const SUGGESTED_TIMES = ['09:00', '21:00', '14:00', '12:00', '18:00', '23:00', '06:00']
-
-/** Campos que cambian cuánto se consume. */
-const SCHEDULE_FIELDS = ['doses', 'frequency', 'weekdays', 'intervalDays', 'asNeeded', 'startDate', 'endDate', 'active'] as const
 
 const sortDoses = (doses: DoseTime[]) => [...doses].sort((a, b) => a.time.localeCompare(b.time))
 
@@ -90,26 +87,13 @@ export function MedicationForm({ medication, onClose }: { medication?: Medicatio
     const now = Date.now()
     const doses = sortDoses(m.doses)
 
-    // Stock: un recuento nuevo solo si se ha corregido a mano, o si cambia la
-    // pauta (entonces se fija lo que queda hoy, para que la pauta nueva no
-    // recalcule el consumo pasado). Si no, se conserva el último recuento.
-    const current = medication ? stockStatus(medication, data.doseLogs, now).remaining : 0
-    let stockUnits = medication?.stockUnits ?? 0
-    let stockCountedAt = medication?.stockCountedAt ?? now
-    const scheduleChanged =
-      !!medication &&
-      SCHEDULE_FIELDS.some((k) =>
-        k === 'doses'
-          ? JSON.stringify(sortDoses(medication.doses)) !== JSON.stringify(doses)
-          : JSON.stringify(medication[k]) !== JSON.stringify(m[k]),
-      )
+    const edited: Medication = { ...m, doses }
+    let manualCount: number | null = null
     if (!medication || stockText !== initialStockText) {
-      stockUnits = stockText.trim() === '' ? current : Math.max(0, num(stockText, current))
-      stockCountedAt = now
-    } else if (scheduleChanged) {
-      stockUnits = current
-      stockCountedAt = now
+      const fallback = medication ? stockStatus(medication, data.doseLogs, now).remaining : 0
+      manualCount = stockText.trim() === '' ? fallback : Math.max(0, num(stockText, fallback))
     }
+    const { stockUnits, stockCountedAt } = stockOnSave(medication, edited, data.doseLogs, now, manualCount)
 
     // Tomas que han cambiado de hora: sus registros pasan a la hora nueva.
     const moved = new Map<string, string>()
@@ -120,7 +104,7 @@ export function MedicationForm({ medication, onClose }: { medication?: Medicatio
       })
     }
 
-    const saved: Medication = { ...m, name: m.name.trim(), doses, stockUnits, stockCountedAt }
+    const saved: Medication = { ...edited, name: m.name.trim(), stockUnits, stockCountedAt }
     update((d) => ({
       ...d,
       medications: d.medications.some((x) => x.id === saved.id)

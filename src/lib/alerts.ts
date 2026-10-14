@@ -81,7 +81,7 @@ export function computeAlerts(data: AppData, meId: string | undefined, now = Dat
       title: overdue.length === 1 ? '1 toma sin registrar' : `${overdue.length} tomas sin registrar`,
       detail: overdue
         .slice(0, 3)
-        .map((d) => `${d.date === today ? '' : 'anoche '}${d.time} ${d.med.name}`)
+        .map((d) => `${d.date === today ? '' : 'ayer '}${d.time} ${d.med.name}`)
         .join(' · '),
       to: '/medicacion',
     })

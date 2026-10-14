@@ -250,7 +250,7 @@ function RoutedContent() {
 }
 
 function Shell() {
-  const { data, ready, me, storageError, storageLocked } = useData()
+  const { data, ready, me, storageError, storageLocked, storageUnavailable } = useData()
   useCalendarAutoRefresh()
 
   if (!ready) {
@@ -267,7 +267,7 @@ function Shell() {
         <SampleBanner />
         {storageError && (
           <div className="no-print px-4 py-2 text-center text-[14px]" style={{ backgroundColor: 'var(--loss-bg)', color: 'var(--loss)' }}>
-            {storageLocked
+            {storageLocked && !storageUnavailable
               ? 'No se han podido leer los datos guardados en este navegador. Para no estropearlos, no se guardará nada hasta que recargues la página.'
               : 'No se están pudiendo guardar los datos en este navegador (¿modo privado o sin espacio?).'}
           </div>

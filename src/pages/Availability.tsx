@@ -250,6 +250,8 @@ function CalendarsSection({ memberId, calendars }: { memberId: string; calendars
   const [info, setInfo] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<CalendarSource | null>(null)
   const [help, setHelp] = useState(false)
+  // Archivo con el mismo nombre que un calendario ya importado: ¿es el mismo actualizado o es otro?
+  const [sameName, setSameName] = useState<{ name: string; text: string; previous: CalendarSource } | null>(null)
 
   const store = (name: string, text: string, sourceUrl: string, existing?: CalendarSource) => {
     let events: CalendarSource['events']
@@ -293,9 +295,23 @@ function CalendarsSection({ memberId, calendars }: { memberId: string; calendars
       const text = await file.text()
       if (!text.includes('BEGIN:VCALENDAR')) throw new Error('El archivo no es un calendario .ics.')
       const name = file.name.replace(/\.ics$/i, '')
-      // Volver a importar el mismo archivo lo actualiza en vez de duplicarlo.
       const previous = calendars.find((c) => !c.url && c.name === name)
-      store(name, text, '', previous)
+      if (previous) setSameName({ name, text, previous })
+      else store(name, text, '')
+    })
+
+  const resolveSameName = (replace: boolean) =>
+    run(async () => {
+      if (!sameName) return
+      const { name, text, previous } = sameName
+      setSameName(null)
+      if (replace) {
+        store(name, text, '', previous)
+        return
+      }
+      let n = 2
+      while (calendars.some((c) => c.name === `${name} (${n})`)) n++
+      store(`${name} (${n})`, text, '')
     })
 
   const importUrl = () =>
@@ -383,6 +399,25 @@ function CalendarsSection({ memberId, calendars }: { memberId: string; calendars
         </div>
         )}
 
+        {sameName && (
+          <div className="mt-3 rounded-[14px] p-3.5 text-[14px]" style={{ backgroundColor: '#eef5fc' }}>
+            <p>
+              Ya tienes un calendario llamado «{sameName.name}». ¿Este archivo es el mismo calendario actualizado o es
+              otro distinto?
+            </p>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              <button type="button" className="ap-btn ap-btn-sm ap-btn-primary" onClick={() => resolveSameName(true)}>
+                Actualizar «{sameName.name}»
+              </button>
+              <button type="button" className="ap-btn ap-btn-sm ap-btn-neutral" onClick={() => resolveSameName(false)}>
+                Añadir como otro
+              </button>
+              <button type="button" className="ap-btn ap-btn-sm ap-btn-quiet" onClick={() => setSameName(null)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
         {busy && <p className="mt-3 text-[14px] text-[color:var(--ap-ink-3)]">Importando…</p>}
         {error && (
           <div className="mt-3">
@@ -477,7 +512,8 @@ function UpcomingBusy({ memberId }: { memberId: string }) {
             <li key={i} className="flex items-center gap-3 px-4 py-2.5" style={{ borderColor: 'var(--ap-hairline-soft)' }}>
               <Avatar member={member} size={26} />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[15px] font-medium">
+                <div className="truncate text-[15px] font-medium" style={c.tentative ? { color: 'var(--ap-ink-3)' } : undefined}>
+                  {c.tentative && 'Quizá: '}
                   {c.private ? 'Ocupado' : c.title}
                   {c.private && memberId === me?.id && (
                     <span className="font-normal text-[color:var(--ap-ink-3)]"> · solo tú ves «{conflictLabel(c, me.id)}»</span>
@@ -491,6 +527,12 @@ function UpcomingBusy({ memberId }: { memberId: string }) {
             </li>
           ))}
         </ul>
+      )}
+      {items.some((c) => c.tentative) && (
+        <p className="mt-1.5 px-1 text-[13px] text-[color:var(--ap-ink-3)]">
+          «Quizá» son eventos de día completo marcados como libres en tu calendario (cumpleaños, recordatorios…): se
+          avisa de ellos, pero no impiden que te asignen un turno.
+        </p>
       )}
     </Section>
   )

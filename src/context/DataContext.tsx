@@ -29,8 +29,13 @@ interface DataContextValue {
   ready: boolean
   /** No se pudo guardar en este navegador (modo privado, sin espacio…). */
   storageError: boolean
-  /** No se pudieron leer los datos guardados: no se escribe nada para no pisarlos. */
+  /**
+   * No se pudieron leer los datos guardados: en esta sesión no se escribe nada
+   * (ni se borra) para no pisarlos. Recargar la página vuelve a intentarlo.
+   */
   storageLocked: boolean
+  /** Este navegador no deja guardar nada (ventana privada, marco aislado…). */
+  storageUnavailable: boolean
   /** Perfil con el que se usa la app en este dispositivo. */
   me: Member | undefined
   setMeId: (id: string | null) => void
@@ -74,6 +79,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
   const [storageError, setStorageError] = useState(false)
   const [storageLocked, setStorageLocked] = useState(false)
+  const [storageUnavailable, setStorageUnavailable] = useState(false)
   const [meId, setMeIdState] = useState<string | null>(() => loadMeId())
   const dirty = useRef(false)
   const locked = useRef(false)
@@ -87,12 +93,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setData(sample.data)
       const firstId = sample.data.members[0].id
       setMeIdState(firstId)
-      saveMeId(firstId)
       if (persist) {
+        saveMeId(firstId)
         void replaceAllData(sample.data, sample.files).then((outcome) => {
-          if (outcome !== 'stored') setStorageError(true)
+          if (outcome === 'stored') return
+          // Que los documentos de ejemplo se puedan abrir aunque no se hayan guardado.
+          keepFilesInMemory(sample.files)
+          setStorageError(true)
         })
       } else {
+        // Sin tocar lo guardado (ni siquiera quién eres en este dispositivo).
         keepFilesInMemory(sample.files)
       }
     }
@@ -104,16 +114,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       })
       .catch(async () => {
         if (cancelled) return
+        // No se ha podido leer lo guardado: en esta sesión no se escribe ni se
+        // borra nada, porque ahí pueden estar los datos de la familia y el
+        // fallo puede ser pasajero. (Si el navegador no deja guardar nada, el
+        // bloqueo no cambia nada: las escrituras fallarían igual.)
+        locked.current = true
+        setStorageLocked(true)
         setStorageError(true)
-        // Si la base de datos existe pero no se ha podido leer, nunca escribir
-        // encima: ahí pueden estar los datos de la familia y el fallo puede
-        // ser pasajero. Si directamente no hay almacenamiento, no hay nada que
-        // proteger.
-        if (await storageAvailable()) {
-          locked.current = true
-          setStorageLocked(true)
-        }
+        const available = await storageAvailable()
         if (cancelled) return
+        setStorageUnavailable(!available)
         if (IS_PREVIEW) showSample(false)
       })
       .finally(() => {
@@ -210,7 +220,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const setMeId = useCallback((id: string | null) => {
     setMeIdState(id)
-    saveMeId(id)
+    // Con el almacenamiento bloqueado no se guarda nada, tampoco quién eres.
+    if (!locked.current) saveMeId(id)
   }, [])
 
   const me = useMemo(
@@ -231,6 +242,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       ready,
       storageError,
       storageLocked,
+      storageUnavailable,
       me,
       setMeId,
       can,
@@ -241,7 +253,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       remove,
       replaceData,
     }),
-    [data, ready, storageError, storageLocked, me, setMeId, can, memberById, update, upsert, upsertMany, remove, replaceData],
+    [data, ready, storageError, storageLocked, storageUnavailable, me, setMeId, can, memberById, update, upsert, upsertMany, remove, replaceData],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
